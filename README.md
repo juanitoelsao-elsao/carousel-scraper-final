@@ -13,6 +13,19 @@ Professional carousel generator for real estate listings. Scrapes property data 
 
 ## What Finally Worked
 
+### Dynamic Editorial Copy Generation
+
+Each carousel now generates **unique, property-specific copy** for every slide based on actual scraped data:
+
+**Copy varies by:**
+- Property type (land, beachfront, villa, hotel, retreat, condo, house, hostal)
+- Bed/bath count ("5 bedrooms. 3 baths. Real luxury." vs "Compact. Considered.")
+- Square meters ("300+ m² = rare private space" vs "150-300 m² = efficient design")
+- Key amenities (pool, ocean view, beachfront detected from features)
+- Location (Mazunte, Zipolite, Huatulco, Puerto Escondido, etc.)
+
+**Outcome:** No more repeated generic copy. Each property's carousel has editorial-specific content matching its actual features and size.
+
 ### Local Proxy Server (Port 5001)
 
 The key to reliable scraping is running a local CORS proxy:

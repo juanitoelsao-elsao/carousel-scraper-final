@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CDR Carousel Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0b1421;color:#fff;font-family:'Helvetica Neue',Arial,sans-serif;padding:26px 22px;min-height:100vh}
+.hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:10px}
+.hdr h1{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.25)}
+.lang-row{display:flex}
+.lb{background:transparent;border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.35);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:7px 16px;cursor:pointer;font-family:inherit;transition:all .15s}
+.lb:first-child{border-radius:3px 0 0 3px}
+.lb:last-child{border-radius:0 3px 3px 0;border-left:none}
+.lb.on{background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.4)}
+button{border:none;cursor:pointer;font-family:inherit;letter-spacing:.09em;text-transform:uppercase;font-size:11px;padding:10px 20px;border-radius:3px;transition:all .15s}
+button:hover{opacity:.82}
+.bg{background:#a07830;color:#fff}
+.bn{background:#1c2e45;color:#fff;border:1px solid rgba(255,255,255,.18)}
+.bgh{background:rgba(255,255,255,.05);color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.1)}
+.lbl{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:10px}
+.divider{display:flex;align-items:center;gap:14px;margin:26px 0 20px}
+.divider span{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.2);white-space:nowrap}
+.divider:before,.divider:after{content:'';flex:1;height:1px;background:rgba(255,255,255,.07)}
+.st{font-size:12px;color:rgba(255,255,255,.35);min-height:15px;margin:8px 0}
+.url-row{display:flex;gap:8px;margin-bottom:6px}
+.ui{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:4px;color:#fff;font-size:13px;font-family:inherit;padding:10px 13px;outline:none}
+.ui:focus{border-color:rgba(160,120,48,.55)}
+.ui::placeholder{color:rgba(255,255,255,.2)}
+.icard{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:5px;padding:13px 17px;margin:10px 0;min-height:44px}
+.tbadge{display:inline-block;font-size:9px;letter-spacing:.14em;text-transform:uppercase;padding:3px 9px;border-radius:2px;margin-bottom:5px;font-weight:600}
+.srow{display:flex;gap:9px;overflow-x:auto;padding-bottom:8px;margin:10px 0}
+.srow canvas{border-radius:4px;flex-shrink:0;cursor:pointer}
+.cpanel{display:none;background:rgba(255,255,255,.03);border:1px solid rgba(160,120,48,.35);border-radius:6px;padding:18px 20px;margin:12px 0}
+.cp-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.cp-title{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#a07830}
+.cp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cp-full{grid-column:1/-1}
+.cf label{display:block;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:4px}
+.cf textarea,.cf input{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:3px;color:#fff;font-family:inherit;font-size:12px;padding:7px 10px;outline:none;resize:vertical;line-height:1.5}
+.cf textarea:focus,.cf input:focus{border-color:rgba(160,120,48,.5)}
+.capbox{display:none;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:5px;padding:16px 18px;margin:10px 0}
+.caplbl{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#a07830;margin-bottom:8px}
+.captxt{font-size:12px;color:rgba(255,255,255,.75);line-height:1.85;white-space:pre-wrap}
+.uparea{border:1px dashed rgba(255,255,255,.14);border-radius:5px;padding:20px 16px;text-align:center;cursor:pointer;position:relative;margin-bottom:10px}
+.uparea:hover,.uparea.drag{border-color:#a07830}
+.uparea input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.uparea p{font-size:12px;color:rgba(255,255,255,.27);pointer-events:none}
+.trow{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.tw{position:relative;display:inline-block}
+.tw img{width:62px;height:62px;object-fit:cover;border-radius:3px;border:1px solid rgba(255,255,255,.1);display:block}
+.tw button{position:absolute;top:-5px;right:-5px;width:17px;height:17px;border-radius:50%;background:#e24;color:#fff;font-size:9px;padding:0;letter-spacing:0;line-height:17px;text-align:center;min-width:0}
+.fg{display:grid;gap:10px;margin-bottom:10px}
+.fg2{grid-template-columns:1fr 1fr}
+.fg3{grid-template-columns:1fr 1fr 1fr}
+.fg1{grid-template-columns:1fr}
+.fld label{display:block;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:4px}
+.fld input,.fld select,.fld textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:3px;color:#fff;font-family:inherit;font-size:13px;padding:8px 11px;outline:none}
+.fld input:focus,.fld textarea:focus{border-color:rgba(160,120,48,.5)}
+.fld select{background:#182333;cursor:pointer}
+.fld textarea{resize:vertical;min-height:62px;line-height:1.6}
+.tpills{display:flex;gap:7px;margin-bottom:13px}
+.tp{flex:1;padding:9px 5px;border-radius:4px;border:2px solid transparent;cursor:pointer;text-align:center;font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-family:inherit}
+.tp.on{border-color:rgba(255,255,255,.8)}
+.tn{background:#1c2e45;color:#fff}.tc{background:#a07830;color:#fff}.tb{background:#f0e9d6;color:#1c2e45}
+.brow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <h1>Costa Dream Realty · Carousel Generator</h1>
+  <div class="lang-row">
+    <button class="lb on" id="btnEN" onclick="setLang('en')">EN</button>
+    <button class="lb" id="btnES" onclick="setLang('es')">ES</button>
+  </div>
+</div>
+
+<!-- URL MODE -->
+<div class="lbl" id="L_urlsec">Paste any property URL — scrapes photos & data automatically</div>
+<div class="url-row">
+  <input class="ui" id="urlIn" type="url" placeholder="https://www.costadreamrealty.com/property/...">
+  <button class="bg" id="L_fetchbtn" onclick="runURL()">Fetch & Preview Copy</button>
+</div>
+<div class="st" id="urlSt"></div>
+<div class="icard" id="urlInfo"><span style="color:rgba(255,255,255,.18);font-size:12px" id="L_urlhint">Paste a URL above and press Fetch & Preview Copy</span></div>
+<div class="cpanel" id="urlPanel">
+  <div class="cp-hdr">
+    <span class="cp-title" id="L_revtitle">Review & Edit Copy — then Render</span>
+    <button class="bg" id="L_renderbtn" onclick="renderFromPanel('url')">Render 8 Slides →</button>
+  </div>
+  <div class="cp-grid" id="urlFields"></div>
+</div>
+<div class="srow" id="urlSlides"></div>
+<div class="capbox" id="urlCap">
+  <div class="caplbl" id="L_igcap">Instagram Caption</div>
+  <div class="captxt" id="urlCapTxt"></div>
+  <button class="bgh" style="margin-top:10px;font-size:10px" id="L_copycap" onclick="copyTxt('urlCapTxt',this)">Copy Caption</button>
+</div>
+<div style="display:none;margin-top:6px" id="urlDlRow">
+  <button class="bn" id="L_dl" onclick="dlZip('url')">⬇ Download ZIP</button>
+</div>
+
+<div class="divider"><span id="L_divider">or build manually</span></div>
+
+<!-- MANUAL MODE -->
+<div class="lbl" id="L_mansec">Manual Entry</div>
+<div class="uparea" id="dropZone">
+  <input type="file" id="photoIn" accept="image/*" multiple onchange="handleFiles(this.files)">
+  <p id="L_upload">⬆ Drag & drop photos · click to select · order = slide order</p>
+</div>
+<div class="trow" id="thumbRow"></div>
+<div class="fg fg2">
+  <div class="fld" style="grid-column:1/-1"><label id="L_ftitle">Property Title</label>
+    <input type="text" id="mTitle" placeholder="e.g. Oceanfront Villa in Mazunte"></div>
+</div>
+<div class="fg fg2">
+  <div class="fld"><label id="L_floc">Location</label><input type="text" id="mLoc" placeholder="Mazunte, Oaxaca"></div>
+  <div class="fld"><label id="L_fprice">Price (sets colour tier)</label><input type="text" id="mPrice" placeholder="1,200,000" oninput="autoTier()"></div>
+</div>
+<div class="fg fg3">
+  <div class="fld"><label id="L_fcur">Currency</label>
+    <select id="mCur" onchange="autoTier()"><option value="USD">USD</option><option value="MXN">MXN</option></select></div>
+  <div class="fld"><label id="L_fbeds">Bedrooms</label><input type="number" id="mBeds" placeholder="3" min="0"></div>
+  <div class="fld"><label id="L_fbaths">Bathrooms</label><input type="number" id="mBaths" placeholder="2" min="0"></div>
+</div>
+<div class="fg fg3">
+  <div class="fld"><label id="L_fsqm">Construction m²</label><input type="number" id="mSqm" placeholder="240"></div>
+  <div class="fld"><label id="L_flot">Lot m²</label><input type="number" id="mLot" placeholder="800"></div>
+  <div class="fld"><label id="L_ftype">Property Type</label>
+    <select id="mType">
+      <option value="auto" id="L_auto">Auto-detect</option>
+      <option value="beachfront">Beachfront</option><option value="villa">Villa</option>
+      <option value="hotel">Boutique Hotel</option><option value="retreat">Wellness Retreat</option>
+      <option value="lot">Lot / Land</option><option value="condo">Condo</option>
+      <option value="house">House</option><option value="hostal">Hostal</option>
+    </select></div>
+</div>
+<div class="fg fg1" style="margin-bottom:12px">
+  <div class="fld"><label id="L_ffeats">Key Features — one per line</label>
+    <textarea id="mFeats" placeholder="Direct ocean access&#10;Infinity pool&#10;Solar powered"></textarea></div>
+</div>
+<div style="margin-bottom:12px">
+  <div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:7px" id="L_ftier">Colour Tier</div>
+  <div class="tpills">
+    <div class="tp tn on" data-tier="navy" onclick="pickTier('navy')">Navy<br><span style="font-size:8px;opacity:.5">$800K+ USD</span></div>
+    <div class="tp tc" data-tier="camel" onclick="pickTier('camel')">Camel<br><span style="font-size:8px;opacity:.5">$500K–800K</span></div>
+    <div class="tp tb" data-tier="beige" onclick="pickTier('beige')">Beige<br><span style="font-size:8px;opacity:.5">Under $500K</span></div>
+  </div>
+</div>
+<div class="brow">
+  <button class="bg" id="L_genbtn" onclick="runManual()">Preview Copy →</button>
+</div>
+<div class="st" id="manSt"></div>
+<div class="cpanel" id="manPanel">
+  <div class="cp-hdr">
+    <span class="cp-title" id="L_revtitle2">Review & Edit Copy — then Render</span>
+    <button class="bg" id="L_renderbtn2" onclick="renderFromPanel('manual')">Render 8 Slides →</button>
+  </div>
+  <div class="cp-grid" id="manFields"></div>
+</div>
+<div class="srow" id="manSlides"></div>
+<div class="capbox" id="manCap">
+  <div class="caplbl" id="L_igcap2">Instagram Caption</div>
+  <div class="captxt" id="manCapTxt"></div>
+  <button class="bgh" style="margin-top:10px;font-size:10px" id="L_copycap2" onclick="copyTxt('manCapTxt',this)">Copy Caption</button>
+</div>
+<div style="display:none;margin-top:6px" id="manDlRow">
+  <button class="bn" id="L_dl2" onclick="dlZip('manual')">⬇ Download ZIP</button>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────
+var LANG='en';
+var TOKEN='ffq9drrwz004a5nmv54w98zcpnfiyz';
+var API='https://api.easybroker.com/v1/properties';
+var WORKER='https://api.allorigins.win/get?url=';
+var LOGO_URL='https://assets.easybroker.com/organization_files/160411/CostaDreamLogo2025.JPG';
+var W=1080,H=1350,MXN_R=17.2,CACHE_TTL=3600000;
+var TC={
+  navy:{bg:'#1c2e45',rgb:'28,46,69',  text:'#ffffff',sub:'rgba(255,255,255,0.52)',border:'#ffffff'},
+  camel:{bg:'#a07830',rgb:'160,120,48',text:'#ffffff',sub:'rgba(255,255,255,0.58)',border:'#ffffff'},
+  beige:{bg:'#f0e9d6',rgb:'240,233,214',text:'#1c2e45',sub:'rgba(28,46,69,0.46)', border:'#1c2e45'}
+};
+var LS={TIER:'cdr_tier',NAVY:'cdr_pi_n',CAMEL:'cdr_pi_c',BEIGE:'cdr_pi_b',
+        AN:'cdr_ai_n',AC:'cdr_ai_c',AB:'cdr_ai_b',CACHE:'cdr_eb3',CT:'cdr_ts3'};
+var logoImg=null,urlCvs=[],manCvs=[],manImgs=[],manTier='navy',_ci=0;
+var urlProp=null,urlImgArr=[],manProp=null;
+
+// ── STRINGS ───────────────────────────────────────────────────────────────
+var STR={
+  en:{urlsec:'Paste any property URL — scrapes photos & data automatically',
+      fetchbtn:'Fetch & Preview Copy',urlhint:'Paste a URL above and press Fetch & Preview Copy',
+      revtitle:'Review & Edit Copy — then Render',renderbtn:'Render 8 Slides →',
+      igcap:'Instagram Caption',copycap:'Copy Caption',dl:'⬇ Download ZIP',
+      divider:'or build manually',mansec:'Manual Entry',
+      upload:'⬆ Drag & drop photos · click to select · order = slide order',
+      ftitle:'Property Title',floc:'Location',fprice:'Price (sets colour tier)',
+      fcur:'Currency',fbeds:'Bedrooms',fbaths:'Bathrooms',fsqm:'Construction m²',
+      flot:'Lot m²',ftype:'Property Type',ffeats:'Key Features — one per line',
+      ftier:'Colour Tier',genbtn:'Preview Copy →',auto:'Auto-detect',
+      copied:'✓ Copied!',st_fetch:'Fetching property data…',st_imgs:'Loading images…',
+      st_render:'Rendering slides…',st_done:'✓ 8 slides ready.',st_err:'Error: ',
+      nophoto:'Upload at least one photo first.',
+      lbl_s1:'Slide 1 — Headline',lbl_s1s:'Slide 1 — Subtitle / Location',
+      lbl_s3:'Slide 3 — Tagline',lbl_feats:'Slide 3 — Features (one per line)',
+      lbl_s5:'Slide 5 — Headline',lbl_s5s:'Slide 5 — Subtitle',lbl_cap:'Instagram Caption'},
+  es:{urlsec:'Pega cualquier URL de propiedad para generar slides',
+      fetchbtn:'Obtener y previsualizar copy',urlhint:'Pega una URL y presiona Obtener',
+      revtitle:'Revisa y edita el copy — luego renderiza',renderbtn:'Renderizar 8 slides →',
+      igcap:'Caption de Instagram',copycap:'Copiar caption',dl:'⬇ Descargar ZIP',
+      divider:'o ingresa manualmente',mansec:'Entrada manual',
+      upload:'⬆ Arrastra fotos · clic para seleccionar · orden = orden de slides',
+      ftitle:'Título de la propiedad',floc:'Ubicación',fprice:'Precio (define el color)',
+      fcur:'Moneda',fbeds:'Recámaras',fbaths:'Baños',fsqm:'m² Construcción',
+      flot:'m² Terreno',ftype:'Tipo de propiedad',ffeats:'Características clave — una por línea',
+      ftier:'Tono de color',genbtn:'Previsualizar copy →',auto:'Auto-detectar',
+      copied:'✓ Copiado!',st_fetch:'Obteniendo datos…',st_imgs:'Cargando imágenes…',
+      st_render:'Renderizando slides…',st_done:'✓ 8 slides listos.',st_err:'Error: ',
+      nophoto:'Sube al menos una foto primero.',
+      lbl_s1:'Slide 1 — Titular',lbl_s1s:'Slide 1 — Subtítulo / Ubicación',
+      lbl_s3:'Slide 3 — Frase principal',lbl_feats:'Slide 3 — Características (una por línea)',
+      lbl_s5:'Slide 5 — Titular',lbl_s5s:'Slide 5 — Subtítulo',lbl_cap:'Caption de Instagram'}
+};
+function s(k){return(STR[LANG]||STR.en)[k]||'';}
+
+function setLang(l){
+  LANG=l;
+  document.getElementById('btnEN').classList.toggle('on',l==='en');
+  document.getElementById('btnES').classList.toggle('on',l==='es');
+  var m={L_urlsec:'urlsec',L_fetchbtn:'fetchbtn',L_urlhint:'urlhint',
+    L_revtitle:'revtitle',L_renderbtn:'renderbtn',L_revtitle2:'revtitle',L_renderbtn2:'renderbtn',
+    L_igcap:'igcap',L_copycap:'copycap',L_dl:'dl',
+    L_igcap2:'igcap',L_copycap2:'copycap',L_dl2:'dl',
+    L_divider:'divider',L_mansec:'mansec',L_upload:'upload',
+    L_ftitle:'ftitle',L_floc:'floc',L_fprice:'fprice',L_fcur:'fcur',
+    L_fbeds:'fbeds',L_fbaths:'fbaths',L_fsqm:'fsqm',L_flot:'flot',
+    L_ftype:'ftype',L_ffeats:'ffeats',L_ftier:'ftier',L_genbtn:'genbtn',L_auto:'auto'};
+  Object.keys(m).forEach(function(id){
+    var el=document.getElementById(id);if(el&&s(m[id]))el.textContent=s(m[id]);
+  });
+}
+
+// ── COPY DATA ─────────────────────────────────────────────────────────────
+var LD={
+  mazunte:{en:{h:['Mazunte —\nwhere cliffs meet the Pacific.','Bohemian soul.\nOcean edge.','The coast\'s\nmost considered address.'],a:['cliffside','Pacific-facing','off-grid luxury'],v:'Mazunte\'s land is finite. No high-rises, no chains. The buyers who understood this early did very well. The window remains, barely.',t:'#Mazunte #CostaOaxaca #OaxacaCoast #MexicoRealEstate #LuxuryMexico #CostaDreamRealty'},es:{h:['Mazunte —\ndonde los acantilados tocan el Pacífico.','Alma libre.\nOrilla del océano.','La dirección más\nexclusiva de la costa.'],a:['en los acantilados','frente al Pacífico','lujo fuera de la red'],v:'La tierra en Mazunte es finita. Sin torres, sin cadenas. Los que llegaron primero tomaron la mejor decisión de su vida.',t:'#Mazunte #CostaOaxaca #CostaDeOaxaca #InversionMexico #MexicoLuxury #CostaDreamRealty'}},
+  zipolite:{en:{h:['Zipolite —\nthe coast\'s last wild frontier.','Raw beauty.\nZero compromise.','Where land is scarce\nand freedom is not.'],a:['oceanfront','untamed','singular'],v:'Zipolite carries no chain hotels, no high-rises — only rare land on one of Mexico\'s most iconic beaches.',t:'#Zipolite #CostaOaxaca #OaxacaCoast #MexicoRealEstate #CostaDreamRealty'},es:{h:['Zipolite —\nla última frontera de la costa.','Belleza sin filtro.\nCero concesiones.','Donde la tierra escasea\ny la libertad no lo hace.'],a:['frente al océano','sin domar','única en México'],v:'Zipolite no tiene cadenas hoteleras ni torres. Solo tierra escasa sobre una de las playas más icónicas de México.',t:'#Zipolite #CostaOaxaca #CostaDeOaxaca #InversionMexico #CostaDreamRealty'}},
+  huatulco:{en:{h:['Huatulco — nine bays,\none national park.','Established resort.\nPermanent value.','Airport. Marina.\nThe Pacific. Yours.'],a:['marina access','resort-established','protected coast'],v:'Huatulco holds a direct international airport, a protected national park, and nine bays — infrastructure that cannot be replicated on this coast.',t:'#Huatulco #BahiasDeHuatulco #OaxacaCoast #MexicoLuxury #CostaDreamRealty'},es:{h:['Huatulco — nueve bahías,\nun parque nacional.','Destino consolidado.\nValor permanente.','Aeropuerto. Marina.\nEl Pacífico. Todo tuyo.'],a:['con marina','destino establecido','costa protegida'],v:'Huatulco tiene aeropuerto internacional, parque nacional protegido y nueve bahías — infraestructura que ningún otro punto de esta costa puede duplicar.',t:'#Huatulco #BahiasDeHuatulco #CostaOaxaca #InversionMexico #CostaDreamRealty'}},
+  escondido:{en:{h:['Puerto Escondido —\nthe surf capital grows up.','International energy.\nPacific address.','The market that\nrefuses to slow down.'],a:['surf capital','fast-growing','internationally known'],v:'Puerto Escondido moved from surf town to international investment address in under a decade. Still moving.',t:'#PuertoEscondido #OaxacaCoast #SurfMexico #MexicoInvestment #CostaDreamRealty'},es:{h:['Puerto Escondido —\nla capital del surf evoluciona.','Energía internacional.\nDirección en el Pacífico.','El mercado que\nno deja de moverse.'],a:['capital del surf','en pleno crecimiento','proyección internacional'],v:'Puerto Escondido pasó de pueblo surfero a destino de inversión internacional en menos de una década. Sigue avanzando.',t:'#PuertoEscondido #CostaOaxaca #SurfMexico #InversionMexico #CostaDreamRealty'}},
+  angel:{en:{h:['Puerto Ángel —\nauthentic Mexico coast.','Hidden. Real.\nStill accessible.','The bay the world\nhas yet to overdevelop.'],a:['authentic','undiscovered','fishing-village charm'],v:'Puerto Ángel is what this coast looked like before the world paid attention. That window is closing.',t:'#PuertoAngel #CostaOaxaca #OaxacaRealEstate #MexicoInvestment #CostaDreamRealty'},es:{h:['Puerto Ángel —\nla costa auténtica de México.','Oculto. Real.\nAún accesible.','La bahía que el mundo\naún no ha saturado.'],a:['auténtico','sin descubrir','esencia pesquera'],v:'Puerto Ángel es lo que esta costa era antes de que el mundo prestara atención. Esa ventana se está cerrando.',t:'#PuertoAngel #CostaOaxaca #CostaDeOaxaca #InversionMexico #CostaDreamRealty'}},
+  default:{en:{h:['Pacific Mexico —\nstill within reach.','Rare coast.\nUnmatched value.','Where the real Mexico\nmeets the sea.'],a:['Pacific coast','rare','emerging'],v:'The Oaxaca coast remains one of Mexico\'s last undervalued shorelines. Demand grows. Inventory does not.',t:'#OaxacaCoast #CostaOaxaca #MexicoRealEstate #MexicoInvestment #PacificMexico #CostaDreamRealty'},es:{h:['El Pacífico mexicano —\naún al alcance.','Costa escasa.\nValor sin comparación.','Donde el México real\nllega al mar.'],a:['costa del Pacífico','escasa','en crecimiento'],v:'La costa de Oaxaca sigue siendo una de las costas más subvaloradas de México. La demanda crece. El inventario no.',t:'#CostaOaxaca #OaxacaCoast #InversionMexico #PropiedadMexico #CostaDreamRealty'}}
+};
+var TD={
+  lot:{en:{a:['Your vision.\nYour blueprint.\nYour coast.','Raw land in a market\nthat has very little left.','Build what\nno catalogue offers.'],f:['Buildable coastal land','High-demand, low-supply zone','Rare — comparable inventory nearly gone'],h:'Land like this does not wait. It does not need to.'},es:{a:['Tu visión.\nTu plano.\nTu costa.','Tierra en un mercado\nque ya casi no tiene.','Construye lo que\nningún catálogo ofrece.'],f:['Tierra costera edificable','Zona de alta demanda y baja oferta','Escasa — inventario comparable casi agotado'],h:'La tierra así no espera. No necesita hacerlo.'}},
+  beachfront:{en:{a:['First row.\nEvery single morning.','The Pacific at your feet\nbefore the world wakes up.','Beachfront here is\nthe asset, not a feature.'],f:['Direct beach access — no road between','Unobstructed Pacific panorama','Irreplaceable coastal positioning'],h:'Beachfront on this coast is not something you encounter a second time.'},es:{a:['Primera fila.\nCada mañana sin excepción.','El Pacífico a tus pies\nantes de que el mundo despierte.','El frente de playa\nes el activo.'],f:['Acceso directo a la playa','Vista panorámica al Pacífico','Posicionamiento costero irremplazable'],h:'El frente de playa en esta costa no se encuentra dos veces.'}},
+  villa:{en:{a:['Designed with\nno concessions made.','Private. Considered.\nEntirely yours.','Where architecture\nand coastal life are one.'],f:['Architectural privacy and considered design','Premium finishes throughout','Pool, terraces and outdoor living'],h:'Certain properties ask to be experienced rather than described.'},es:{a:['Diseñada sin\nconcesiones.','Privada. Cuidada.\nCompletamente tuya.','Donde la arquitectura y\nla vida costera son lo mismo.'],f:['Privacidad arquitectónica','Acabados premium','Alberca, terrazas y vida al exterior'],h:'Ciertas propiedades piden ser vividas antes que descritas.'}},
+  hotel:{en:{a:['A hospitality business\nwith an ocean address.','Operational. Profitable.\nIrreplaceable.','The kind of asset\nyou hold for generations.'],f:['Fully operational boutique hotel','Established guest base','Income-generating from day one'],h:'This is not merely a property. It is a business with a view that cannot be replicated.'},es:{a:['Un negocio de hospitalidad\ncon dirección frente al mar.','Operativo. Rentable.\nIrremplazable.','El activo que se\nguarda generaciones.'],f:['Hotel boutique completamente operativo','Base de huéspedes consolidada','Ingresos desde el primer día'],h:'No es solo una propiedad. Es un negocio con una vista que no tiene precio.'}},
+  condo:{en:{a:['Turnkey on the coast.\nLive it or lease it.','Everything present.\nNothing superfluous.','The most efficient\nentry on this shoreline.'],f:['Move-in or rent-ready from day one','Rental income potential proven','Full amenities included'],h:'Minimal effort. Maximum lifestyle. Ask us for the numbers.'},es:{a:['Llave en mano en la costa.\nVívelo o arriéndalo.','Todo lo necesario.\nNada sobrante.','La entrada más eficiente\nen este litoral.'],f:['Listo para habitar o rentar','Potencial de renta comprobado','Amenidades completas'],h:'Mínimo esfuerzo. Máximo estilo de vida. Pregúntanos.'}},
+  house:{en:{a:['A residence that\nearns when you are away.','Live here full time.\nOr not. Either works.','The lifestyle and the\nreturn in one address.'],f:['Full residential use plus rental potential','Private outdoor space','Established walkable neighborhood'],h:'A home with genuine character — and a return worth a conversation.'},es:{a:['Una residencia que\ngenera cuando no estás.','Vive aquí tiempo completo.\nO no. Funciona de ambas formas.','El estilo de vida y el retorno\nen una sola dirección.'],f:['Uso residencial con alto potencial de renta','Espacio exterior privado','Colonia establecida con vida propia'],h:'Una casa con carácter genuino — y un retorno que vale la conversación.'}},
+  retreat:{en:{a:['Where intentional guests\ncome to reset.','Wellness infrastructure\nalready in place.','Designed for those who\nbuild with purpose.'],f:['Complete wellness infrastructure','Multiple independent casitas','Private Pacific-facing setting'],h:'The global wellness market is one of the fastest growing. This property is already inside it.'},es:{a:['Donde los huéspedes\nvienen a reconectar.','Infraestructura de bienestar\nya instalada.','Diseñado para quienes\nconstruyen con propósito.'],f:['Infraestructura de bienestar completa','Casitas independientes','Entorno privado frente al Pacífico'],h:'El mercado del bienestar crece sin parar. Esta propiedad ya forma parte de él.'}},
+  hostal:{en:{a:['A tourism operation\nalready in motion.','Revenue today.\nGrowth tomorrow.','The business runs.\nYou would simply own it.'],f:['Fully operational hospitality business','Proven occupancy history','All tourism infrastructure in place'],h:'The hardest part — building it — is already done.'},es:{a:['Una operación turística\nya en marcha.','Ingresos hoy.\nCrecimiento mañana.','El negocio funciona.\nTú solo serías el dueño.'],f:['Negocio completamente operativo','Historial de ocupación comprobado','Infraestructura turística lista'],h:'Lo más difícil — construirlo — ya está hecho.'}},
+  default:{en:{a:['The listing that\nstops the scroll.','Rare. Considered.\nReady for the right buyer.','Some addresses\nspeak for themselves.'],f:['Prime positioning in high-demand area','Comparable inventory almost gone','Significant appreciation potential'],h:'Some properties only need to be explained once.'},es:{a:['El anuncio que\ndetiene el scroll.','Escasa. Cuidada.\nEsperando al comprador correcto.','Hay direcciones que\nhab lan solas.'],f:['Posicionamiento privilegiado en zona de alta demanda','Inventario comparable prácticamente agotado','Potencial de valorización significativo'],h:'Algunas propiedades solo necesitan explicarse una vez.'}}
+};
+var CTAS={
+  en:['The price belongs in a conversation, not a caption.\nDM us or tap the link in bio. 👇','We keep the numbers private for a reason.\nOne message unlocks everything. → Link in bio.','What it costs is less interesting than what it returns.\nAsk us. Link in bio. 📲','Some figures deserve a direct conversation.\nDM us — we respond the same day. 🌊','The asking price will surprise you.\nNot in the way you expect. Message us now.','Worth a five-minute conversation.\nLink in bio to begin. 📩'],
+  es:['El precio pertenece a una conversación, no a un caption.\nEscríbenos o visita el link en bio. 👇','Guardamos las cifras con razón.\nUn mensaje lo abre todo. → Link en bio.','Lo que cuesta es menos interesante que lo que retorna.\nPregúntanos. Link en bio. 📲','Ciertas cifras merecen una conversación directa.\nEscríbenos — respondemos el mismo día. 🌊','El precio te va a sorprender.\nNo como crees. Escríbenos ahora.','Vale una conversación de cinco minutos.\nLink en bio para comenzar. 📩']
+};
+
+function detectLoc(str){
+  var s=(str||'').toLowerCase();
+  if(/mazunte/.test(s))return LD.mazunte;
+  if(/zipolite/.test(s))return LD.zipolite;
+  if(/huatulco/.test(s))return LD.huatulco;
+  if(/escondido/.test(s))return LD.escondido;
+  if(/puerto.*ngel|panteon/i.test(s))return LD.angel;
+  return LD.default;
+}
+function detectType(title,ov){
+  if(ov&&ov!=='auto'&&TD[ov])return TD[ov];
+  var s=(title||'').toLowerCase();
+  if(/hotel/.test(s))return TD.hotel;
+  if(/retreat|wellness|retiro/.test(s))return TD.retreat;
+  if(/beachfront|oceanfront|frente al mar/.test(s))return TD.beachfront;
+  if(/hostal|hostel/.test(s))return TD.hostal;
+  if(/terreno|lot\b|macrolote|land\b|lote\b/.test(s))return TD.lot;
+  if(/villa/.test(s))return TD.villa;
+  if(/condo|apartment|penthouse/.test(s))return TD.condo;
+  if(/house|home|casa|residencia/.test(s))return TD.house;
+  return TD.default;
+}
+var FEAT_MAP={en:{pool:'Private infinity pool',alberca:'Private infinity pool',piscina:'Private infinity pool','ocean view':'Unobstructed Pacific panorama','vista al mar':'Unobstructed Pacific panorama',solar:'Off-grid solar infrastructure',casita:'Independent guest casita',garden:'Curated tropical gardens',jardín:'Curated tropical gardens',parking:'Private secure parking',terrace:'Wraparound ocean terrace',terraza:'Wraparound ocean terrace',kitchen:'Chef-grade kitchen',cocina:'Chef-grade kitchen'},es:{pool:'Alberca privada de borde infinito',alberca:'Alberca privada de borde infinito','ocean view':'Panorama del Pacífico sin obstrucciones','vista al mar':'Panorama del Pacífico sin obstrucciones',solar:'Infraestructura solar autónoma',casita:'Casita independiente para huéspedes',garden:'Jardines tropicales curados',jardín:'Jardines tropicales curados',parking:'Estacionamiento privado',terrace:'Terraza con vista al mar',terraza:'Terraza con vista al mar',kitchen:'Cocina de nivel profesional',cocina:'Cocina de nivel profesional'}};
+function elevate(f){
+  f=(f||'').trim();if(!f)return null;
+  var map=FEAT_MAP[LANG]||FEAT_MAP.en;
+  for(var k in map){if(f.toLowerCase().indexOf(k)>=0)return map[k];}
+  return f.charAt(0).toUpperCase()+f.slice(1);
+}
+function buildCopy(prop,ai){
+  ai=ai||0;
+  var loc=detectLoc((prop.loc||'')+(prop.title||''));
+  var typ=detectType(prop.title||'',prop.typeOv);
+  var ll=loc[LANG]||loc.en, tl=typ[LANG]||typ.en;
+  var rawF=prop.manFeats||[];
+  var feats=rawF.length?rawF.map(elevate).filter(Boolean):[];
+  if(!feats.length){
+    if(prop.beds)feats.push(LANG==='es'?prop.beds+' recámara'+(prop.beds>1?'s':''):prop.beds+' bedroom'+(prop.beds>1?'s':''));
+    if(prop.baths)feats.push(LANG==='es'?prop.baths+' baño'+(prop.baths>1?'s':''):prop.baths+' bathroom'+(prop.baths>1?'s':''));
+    if(prop.sqm&&!isNaN(Number(prop.sqm))){
+      var sm=Number(prop.sqm),sf=prop.sqft?Number(prop.sqft):Math.round(sm*10.764);
+      feats.push(sm.toLocaleString('en-US')+' m²  ·  '+sf.toLocaleString('en-US')+' sq ft');
+    }
+    if(!feats.length)feats=tl.f.slice(0,3);
+  }
+  var ctaArr=CTAS[LANG]||CTAS.en;
+  var cta=ctaArr[_ci%ctaArr.length];_ci++;
+  var locName=(prop.loc||'').split(',')[0].trim()||'Oaxaca Coast';
+  var cap=tl.h+'\n\n📍 '+locName+'\n'+feats.map(function(f){return '· '+f;}).join('\n')+'\n\n'+ll.v+'\n\n'+cta+'\n\n'+ll.t;
+  return{s1h:ll.h[ai%ll.h.length],s1s:prop.loc||'',s3tag:tl.a[ai%tl.a.length],
+    s5h:tl.a[(ai+1)%tl.a.length],s5s:ll.a[ai%ll.a.length].replace(/-/g,' '),feats:feats,cap:cap};
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────
+function lsg(k,d){try{var v=localStorage.getItem(k);return v!==null?JSON.parse(v):d;}catch(e){return d;}}
+function lss(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function toUSD(p,c){return c==='MXN'?p/MXN_R:p;}
+function getTier(u){return u>=800000?'navy':u>=500000?'camel':'beige';}
+function setSt(id,m){var el=document.getElementById(id);if(el)el.textContent=m;}
+
+// ── LOGO ──────────────────────────────────────────────────────────────────
+function loadLogo(){
+  return new Promise(function(res){
+    if(logoImg){res();return;}
+    var img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=function(){logoImg=img;res();};
+    img.onerror=function(){
+      // Try allorigins proxy (better for images than localhost)
+      fetch(WORKER+encodeURIComponent(LOGO_URL),{signal:AbortSignal.timeout(8000)})
+        .then(r=>r.json()).then(function(j){
+          if(j.contents){
+            var base64=btoa(j.contents);
+            var img2=new Image();
+            img2.onload=function(){logoImg=img2;res();};
+            img2.onerror=function(){res();};
+            img2.src='data:image/jpeg;base64,'+base64;
+          }else{res();}
+        }).catch(function(){res();});
+    };
+    img.src=LOGO_URL;
+  });
+}
+
+// ── EASYBROKER API ────────────────────────────────────────────────────────
+async function fetchAll(){
+  var cached=lsg(LS.CACHE,null),ts=lsg(LS.CT,0);
+  if(cached&&Array.isArray(cached)&&cached.length&&(Date.now()-ts)<CACHE_TTL){return cached;}
+  setSt('urlSt',s('st_fetch'));
+  var all=[],page=1;
+  while(true){
+    var url=API+'?page='+page+'&per_page=50&status=published';
+    var r;
+    try{r=await fetch(url,{method:'GET',headers:{'X-Authorization':TOKEN,'Accept':'application/json'}});if(!r.ok)r=null;}catch(e){r=null;}
+    if(!r){try{r=await fetch('https://corsproxy.io/?'+encodeURIComponent(url),{headers:{'X-Authorization':TOKEN}});if(!r.ok)r=null;}catch(e){r=null;}}
+    if(!r){r=await fetch(WORKER+encodeURIComponent(url));}
+    if(!r||!r.ok)throw new Error('EasyBroker fetch failed');
+    var d=await r.json();
+    var items=d.content||[];all=all.concat(items);
+    var total=(d.pagination&&d.pagination.total)||all.length;
+    if(all.length>=total||items.length<50)break;
+    page++;
+  }
+  var out=all.map(function(p){
+    var usd=toUSD(p.price||0,p.currency||'MXN');
+    var isLand=/terreno|lot\b|lote\b|land\b/i.test((p.title||'').toLowerCase());
+    return{id:p.public_id||'',title:(p.title||'').trim(),usd:usd,tier:getTier(usd),
+      beds:isLand?'':(p.bedrooms||''),baths:isLand?'':(p.bathrooms||''),
+      sqm:String(p.construction_size||p.lot_size||''),
+      loc:(p.location&&p.location.name)||'',
+      imgs:(p.property_images||[]).map(function(i){return i.url||i.photo_url||'';}).filter(Boolean),
+      url:p.public_url||''};
+  }).filter(function(p){return p.imgs.length>0;});
+  lss(LS.CACHE,out);lss(LS.CT,Date.now());
+  return out;
+}
+
+// ── PROXY FETCH (for non-CDR URLs) ────────────────────────────────────────
+async function proxyFetch(url){
+  var proxies=['http://localhost:5000/?url=','https://api.allorigins.win/get?url=','https://cors-anywhere.herokuapp.com/'];
+  for(var i=0;i<proxies.length;i++){
+    try{
+      var purl=proxies[i];
+      if(purl.includes('localhost'))purl+=encodeURIComponent(url);
+      else if(purl.includes('allorigins'))purl+=encodeURIComponent(url);
+      else purl+=url;
+      var r=await fetch(purl,{signal:AbortSignal.timeout(10000),headers:{'User-Agent':'Mozilla/5.0'}});
+      if(!r.ok)continue;
+      var text=await r.text();
+      try{var json=JSON.parse(text);text=json.contents||json;}catch(e){}
+      if(text&&text.length>100)return text;
+    }catch(e){console.log('Proxy '+i+' failed:',e.message);}
+  }
+  throw new Error('Proxy failed: Start scraper-proxy.py OR check internet');
+}
+
+// ── SCRAPE (non-CDR URLs only) ────────────────────────────────────────────
+async function scrapeURL(pageURL){
+  var html=await proxyFetch(pageURL);
+  var titleM=html.match(/<title>([^<]{4,120})<\/title>/i);
+  var title=titleM?titleM[1].replace(/\s*[-|].*?(CDR|Costa Dream|Realty|EasyBroker).*/i,'').trim():'';
+  var isLand=/terreno|lot\b|macrolote|land\b|lote\b/i.test(title)||/Type:\s*Lot|Tipo:\s*(?:Terreno|Lote)/i.test(html);
+  var usd=0;
+  var pm=html.match(/\$([\d,]+(?:\.\d+)?)\s*(USD|MXN)/i);
+  if(pm){var pn=parseFloat(pm[1].replace(/,/g,''));usd=/MXN/i.test(pm[2])?pn/MXN_R:pn;}
+  var loc='';
+  var lm=html.match(/(?:\bin\b|\ben\b)\s+([A-ZÁÉÍÓÚÑ][A-Za-záéíóúñ\s]{3,40}?)(?:,\s*[A-Z]|<|\.)/);
+  if(lm)loc=lm[1].trim();
+  var sqmRaw='',sqftRaw='';
+  var ds=html.match(/(\d[\d,]+)\s*m[²2]\s*\(([\d,]+)\s*sq[\s.]?ft\)/i);
+  if(ds){sqmRaw=String(Math.round(parseFloat(ds[1].replace(/,/g,''))));sqftRaw=String(Math.round(parseFloat(ds[2].replace(/,/g,''))));}
+  if(!sqmRaw){var ll=html.match(/(?:Land|Terreno|Construction)[\s:]+(\d[\d,]*)\s*m[²2]/i);if(ll)sqmRaw=String(Math.round(parseFloat(ll[1].replace(/,/g,''))));}
+  if(!sqftRaw&&sqmRaw)sqftRaw=String(Math.round(Number(sqmRaw)*10.764));
+  var beds='',baths='';
+  if(!isLand){
+    var bm=html.match(/(?:^|[\s>:])(\d)\s*(?:recámaras?|bedrooms?)\b/im);
+    var btm=html.match(/(?:^|[\s>:])(\d)\s*(?:baños?|bathrooms?)\b/im);
+    beds=bm?bm[1]:'';baths=btm?btm[1]:'';
+  }
+  var seen={},imgs=[];
+  // Try og:image first
+  var og=html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i)||html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/i);
+  if(og&&og[1])seen[og[1].split('?')[0]]=og[1];
+
+  // Find images from img src attributes
+  var imgRe=/<img[^>]+src="([^"]+\.(?:jpg|jpeg|png|webp|gif))"/gi;
+  var im;
+  while((im=imgRe.exec(html))!==null){
+    var raw=im[1];
+    if(raw.startsWith('/'))raw='https:'+raw;if(raw.startsWith('//'))raw='https:'+raw;
+    if(!raw.startsWith('http'))continue;
+    var base=raw.split('?')[0];if(seen[base])continue;
+    if(/logo|icon|thumb|avatar|pixel|badge|sprite|placeholder|[_-](?:16|24|32|48|64|96)x|widget|tracker|favicon/i.test(base))continue;
+    seen[base]=raw;
+  }
+
+  // Find images from srcset
+  var srcsetRe=/<img[^>]+srcset="([^"]+)"/gi;
+  while((im=srcsetRe.exec(html))!==null){
+    var urls=im[1].split(',').map(u=>u.trim().split(/\s+/)[0]);
+    urls.forEach(function(url){
+      if(!url)return;
+      if(url.startsWith('/'))url='https:'+url;if(url.startsWith('//'))url='https:'+url;
+      if(!url.startsWith('http'))return;
+      var base=url.split('?')[0];if(seen[base])return;
+      if(/logo|icon|thumb|avatar|pixel|badge|sprite|placeholder|[_-](?:16|24|32|48|64|96)x|widget|tracker|favicon/i.test(base))return;
+      seen[base]=url;
+    });
+  }
+
+  // Find all image URLs in HTML (last resort)
+  var re=/(https?:\/\/[^"'\s<>]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^"'\s<>]*)?)/gi;
+  while((im=re.exec(html))!==null){
+    var raw=im[0],base=raw.split('?')[0];
+    if(seen[base])continue;
+    if(/logo|icon|thumb|avatar|pixel|badge|sprite|placeholder|[_-](?:16|24|32|48|64|96)x|widget|tracker|favicon/i.test(base))continue;
+    seen[base]=raw;
+  }
+  imgs=Object.values(seen).slice(0,10);
+  return{title:title.substring(0,80),loc:loc,usd:usd,tier:getTier(usd),
+    beds:beds,baths:baths,sqm:sqmRaw,sqft:sqftRaw,imgs:imgs,manFeats:[],typeOv:null,isLand:isLand};
+}
+
+// ── LOAD IMAGES ───────────────────────────────────────────────────────────
+function loadOneImg(src){
+  return new Promise(function(res){
+    if(!src){res(null);return;}
+    var clean=src.split('?')[0];
+    // Try direct load first (CORS permissive sites)
+    var img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=function(){res(img);};
+    img.onerror=function(){
+      // Fallback to proxy
+      fetch('http://localhost:5000/?url='+encodeURIComponent(clean),{signal:AbortSignal.timeout(8000)})
+        .then(function(r){return r.blob();}).catch(function(){return fetch(WORKER+encodeURIComponent(clean)).then(r=>r.blob());})
+        .then(function(b){
+          var u=URL.createObjectURL(b);var img2=new Image();
+          img2.onload=function(){res(img2);};img2.onerror=function(){res(null);};img2.src=u;
+        }).catch(function(){res(null);});
+    };
+    img.src=clean;
+  });
+}
+function loadImgs(urls){
+  return Promise.all((urls||[]).slice(0,10).map(loadOneImg)).then(function(a){return a.filter(Boolean);});
+}
+
+// ── CANVAS ────────────────────────────────────────────────────────────────
+function cover(ctx,img,x,y,w,h){
+  if(!img)return;
+  var ir=img.naturalWidth/img.naturalHeight,cr=w/h,sx,sy,sw,sh;
+  if(ir>cr){sh=img.naturalHeight;sw=sh*cr;sx=(img.naturalWidth-sw)/2;sy=0;}
+  else{sw=img.naturalWidth;sh=sw/cr;sx=0;sy=(img.naturalHeight-sh)/2;}
+  ctx.drawImage(img,sx,sy,sw,sh,x,y,w,h);
+}
+function grd(ctx,x,y,w,h,col){
+  var g=ctx.createLinearGradient(x,y,x,y+h);g.addColorStop(0,'transparent');g.addColorStop(1,col);
+  ctx.fillStyle=g;ctx.fillRect(x,y,w,h);
+}
+function frame(ctx,t){ctx.save();ctx.strokeStyle=t.border;ctx.lineWidth=5;ctx.strokeRect(22,22,W-44,H-44);ctx.restore();}
+function drawLogo(ctx){
+  if(!logoImg)return;
+  var lh=90,lw=logoImg.naturalWidth*(lh/logoImg.naturalHeight),p=16;
+  ctx.fillStyle='rgba(255,255,255,0.95)';
+  ctx.fillRect(W-lw-p*2-36,H-lh-p*2-34,lw+p*2,lh+p*2);
+  ctx.drawImage(logoImg,W-lw-p-36,H-lh-p-34,lw,lh);
+}
+function wrap(ctx,text,maxW){
+  var out=[];(text||'').split('\n').forEach(function(para){
+    var words=para.split(' '),line='';
+    words.forEach(function(w){if(!w)return;var t2=line?line+' '+w:w;if(ctx.measureText(t2).width>maxW&&line){out.push(line);line=w;}else{line=t2;}});
+    if(line)out.push(line);
+  });return out;
+}
+
+function dHero(ctx,t,img,h1,sub){
+  var ph=Math.round(H*0.77);
+  ctx.fillStyle=t.bg;ctx.fillRect(0,0,W,H);
+  if(img){ctx.save();ctx.beginPath();ctx.rect(0,0,W,ph);ctx.clip();cover(ctx,img,0,0,W,ph);ctx.restore();}
+  grd(ctx,0,ph-400,W,500,'rgba('+t.rgb+',1)');
+  ctx.fillStyle=t.bg;ctx.fillRect(0,ph,W,H-ph);
+
+  // Calculate total height of text content
+  ctx.font='bold 68px "Playfair Display",serif';
+  var ls=wrap(ctx,h1||'',W-160);
+  var textH=ls.length*80;
+  if(sub)textH+=40;
+
+  // Center vertically in bottom section with extra top padding
+  var solidH=H-ph;
+  var y=ph+Math.max(120,(solidH-textH)/2);
+
+  ctx.fillStyle=t.text;ctx.font='bold 68px "Playfair Display",serif';
+  ls.forEach(function(l,i){ctx.fillText(l,72,y+i*80);});
+  if(sub){ctx.fillStyle=t.sub;ctx.font='italic 26px "Playfair Display",serif';ctx.fillText(sub,72,y+ls.length*80+24);}
+  frame(ctx,t);drawLogo(ctx);
+}
+function dFull(ctx,t,img){
+  ctx.fillStyle=t.bg;ctx.fillRect(0,0,W,H);
+  if(img)cover(ctx,img,0,0,W,H);
+  grd(ctx,0,H-320,W,320,'rgba(5,12,22,0.92)');
+  frame(ctx,t);drawLogo(ctx);
+}
+function dFeats(ctx,t,img,headline,feats,loc){
+  var ph=Math.round(H*0.77);
+  ctx.fillStyle=t.bg;ctx.fillRect(0,0,W,H);
+  if(img){ctx.save();ctx.beginPath();ctx.rect(0,0,W,ph);ctx.clip();cover(ctx,img,0,0,W,ph);ctx.restore();}
+  grd(ctx,0,ph-400,W,500,'rgba('+t.rgb+',1)');
+  ctx.fillStyle=t.bg;ctx.fillRect(0,ph,W,H-ph);
+
+  // Calculate total height of content
+  ctx.font='bold 62px "Playfair Display",serif';
+  var tls=wrap(ctx,headline||'',W-150);
+  var textH=tls.length*74+36;
+  textH+=Math.min(4,(feats||[]).length)*46;
+  if(loc)textH+=12+30;
+
+  // Center vertically in bottom section with extra top padding
+  var solidH=H-ph;
+  var y=ph+Math.max(120,(solidH-textH)/2);
+
+  ctx.fillStyle=t.text;ctx.font='bold 62px "Playfair Display",serif';
+  tls.forEach(function(l,i){ctx.fillText(l,72,y+i*74);});
+  y+=tls.length*74+36;
+  (feats||[]).slice(0,4).forEach(function(f){
+    if(!f)return;
+    ctx.fillStyle=t.sub;ctx.font='italic 28px "Playfair Display",serif';
+    ctx.fillText('— '+f,72,y);y+=46;
+  });
+  if(loc&&y<H-100){y+=12;ctx.fillStyle=t.text;ctx.font='24px "Playfair Display",serif';ctx.fillText('📍 '+loc,72,y);}
+  frame(ctx,t);drawLogo(ctx);
+}
+function dCTA(ctx,t){
+  ctx.fillStyle=t.bg;ctx.fillRect(0,0,W,H);
+  ctx.save();ctx.globalAlpha=0.04;ctx.strokeStyle=t.text;ctx.lineWidth=1;
+  for(var i=0;i<H;i+=48){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(W,i);ctx.stroke();}
+  ctx.restore();
+  if(logoImg){
+    var lh=80,lw=logoImg.naturalWidth*(lh/logoImg.naturalHeight),p=16;
+    ctx.fillStyle=t.bg==='#f0e9d6'?'rgba(28,46,69,0.07)':'rgba(255,255,255,0.1)';
+    ctx.fillRect(W/2-lw/2-p,88,lw+p*2,lh+p*2);
+    ctx.drawImage(logoImg,W/2-lw/2,88+p,lw,lh);
+  }
+  ctx.strokeStyle=t.border;ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(72,260);ctx.lineTo(W-72,260);ctx.stroke();
+  ctx.textAlign='center';
+
+  // Randomize CTA text from CTAS array
+  var ctaArr=CTAS[LANG]||CTAS.en;
+  var cta=ctaArr[Math.floor(Math.random()*ctaArr.length)];
+  var ctaLines=cta.split('\n').map(function(l){return l.trim();});
+
+  // Display CTA lines - adjust sizing based on number of lines
+  ctx.fillStyle=t.text;
+  if(ctaLines.length===1){
+    ctx.font='bold 72px "Playfair Display",serif';
+    ctx.fillText(ctaLines[0],W/2,520);
+  }else if(ctaLines.length===2){
+    ctx.font='bold 68px "Playfair Display",serif';
+    ctx.fillText(ctaLines[0],W/2,480);
+    ctx.font='italic 68px "Playfair Display",serif';
+    ctx.fillText(ctaLines[1],W/2,570);
+  }else{
+    ctx.font='bold 56px "Playfair Display",serif';
+    for(var i=0;i<ctaLines.length;i++){
+      ctx.font=(i===0?'bold':'italic')+' 56px "Playfair Display",serif';
+      ctx.fillText(ctaLines[i],W/2,420+i*90);
+    }
+  }
+
+  ctx.font='italic 30px "Playfair Display",serif';ctx.fillStyle=t.sub;
+  ctx.fillText(LANG==='es'?'Sin compromiso. Solo posibilidades.':'No commitment. Just possibilities.',W/2,710);
+  ctx.font='22px "Playfair Display",serif';ctx.fillStyle=t.sub;
+  ctx.fillText('costadreamrealty.com',W/2,768);
+  ctx.beginPath();ctx.moveTo(72,828);ctx.lineTo(W-72,828);ctx.stroke();
+  ctx.textAlign='left';frame(ctx,t);
+}
+
+function buildSlides(prop,copy,imgs){
+  var t=TC[prop.tier];function g(i){return imgs[i]||imgs[0]||null;}
+  return[
+    function(c){dHero(c.getContext('2d'),t,g(0),copy.s1h,copy.s1s);},
+    function(c){dFull(c.getContext('2d'),t,g(1)||g(0));},
+    function(c){dFeats(c.getContext('2d'),t,g(2)||g(0),copy.s3tag,copy.feats,prop.loc||'');},
+    function(c){dFull(c.getContext('2d'),t,g(3)||g(1)||g(0));},
+    function(c){dHero(c.getContext('2d'),t,g(4)||g(2)||g(0),copy.s5h,copy.s5s);},
+    function(c){dFull(c.getContext('2d'),t,g(5)||g(3)||g(0));},
+    function(c){dFull(c.getContext('2d'),t,g(6)||g(4)||g(0));},
+    function(c){dCTA(c.getContext('2d'),t);}
+  ];
+}
+function renderSlides(fns,rowId){
+  var row=document.getElementById(rowId);row.innerHTML='';var cvs=[];
+  fns.forEach(function(fn){
+    var c=document.createElement('canvas');c.width=W;c.height=H;
+    c.style.cssText='width:110px;height:'+Math.round(110*H/W)+'px;border-radius:4px;flex-shrink:0';
+    fn(c);cvs.push(c);row.appendChild(c);
+  });return cvs;
+}
+
+// ── COPY PANEL ────────────────────────────────────────────────────────────
+function showPanel(panelId,fieldsId,copy){
+  var c=document.getElementById(fieldsId);c.innerHTML='';
+  [{id:'s1h',lbl:'lbl_s1',val:copy.s1h,r:3},{id:'s1s',lbl:'lbl_s1s',val:copy.s1s,r:1},
+   {id:'s3tag',lbl:'lbl_s3',val:copy.s3tag,r:3},{id:'feats',lbl:'lbl_feats',val:copy.feats.join('\n'),r:4},
+   {id:'s5h',lbl:'lbl_s5',val:copy.s5h,r:3},{id:'s5s',lbl:'lbl_s5s',val:copy.s5s,r:1},
+   {id:'cap',lbl:'lbl_cap',val:copy.cap,r:8,full:true}
+  ].forEach(function(f){
+    var d=document.createElement('div');d.className='cf'+(f.full?' cp-full':'');
+    var l=document.createElement('label');l.textContent=s(f.lbl);
+    var ta=f.r>1?document.createElement('textarea'):document.createElement('input');
+    ta.id=panelId+'_'+f.id;if(f.r>1)ta.rows=f.r;ta.value=f.val;
+    d.appendChild(l);d.appendChild(ta);c.appendChild(d);
+  });
+  document.getElementById(panelId).style.display='block';
+}
+function readPanel(pid){
+  function v(id){var el=document.getElementById(pid+'_'+id);return el?el.value:'';}
+  return{s1h:v('s1h'),s1s:v('s1s'),s3tag:v('s3tag'),
+    feats:v('feats').split('\n').map(function(l){return l.trim();}).filter(Boolean),
+    s5h:v('s5h'),s5s:v('s5s'),cap:v('cap')};
+}
+
+// ── URL MODE ──────────────────────────────────────────────────────────────
+async function runURL(){
+  var pageURL=(document.getElementById('urlIn').value||'').trim();
+  if(!pageURL){setSt('urlSt','Paste a URL first.');return;}
+  urlCvs=[];urlProp=null;urlImgArr=[];
+  document.getElementById('urlPanel').style.display='none';
+  document.getElementById('urlSlides').innerHTML='';
+  document.getElementById('urlCap').style.display='none';
+  document.getElementById('urlDlRow').style.display='none';
+  document.getElementById('urlInfo').innerHTML='<span style="color:rgba(255,255,255,.2);font-size:12px">'+s('st_fetch')+'</span>';
+  setSt('urlSt',s('st_fetch'));
+  try{
+    await loadLogo();
+    // CDR property → use EasyBroker API directly
+    if(/costadreamrealty\.com\/property\//i.test(pageURL)){
+      var slug=pageURL.split('/property/')[1].split('?')[0].replace(/\/$/,'');
+      var all=await fetchAll();
+      var hit=all.find(function(p){return p.url&&p.url.indexOf(slug)>=0;});
+      if(hit){
+        var isLand=/terreno|lot\b|lote\b|land\b/i.test((hit.title||'').toLowerCase());
+        var sqm=String(hit.sqm||'');
+        urlProp={title:hit.title,loc:hit.loc,usd:hit.usd,tier:hit.tier,
+          beds:isLand?'':hit.beds,baths:isLand?'':hit.baths,
+          sqm:sqm,sqft:sqm?String(Math.round(Number(sqm)*10.764)):'',
+          imgs:hit.imgs,manFeats:[],typeOv:null,isLand:isLand};
+      }
+    }
+    // fallback to scrape
+    if(!urlProp)urlProp=await scrapeURL(pageURL);
+    var tc={navy:'#1c2e45',camel:'#a07830',beige:'#c8b890'},tc2={navy:'#fff',camel:'#fff',beige:'#1c2e45'};
+    document.getElementById('urlInfo').innerHTML=
+      '<span class="tbadge" style="background:'+tc[urlProp.tier]+';color:'+tc2[urlProp.tier]+'">'+urlProp.tier.toUpperCase()+'</span>'+
+      '<div style="font-size:13px;color:#fff;margin-top:5px">'+(urlProp.title||pageURL)+'</div>'+
+      '<div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:3px">'+
+      (urlProp.loc||'')+
+      (urlProp.beds?' · '+urlProp.beds+' bed':'')+
+      (urlProp.baths?' · '+urlProp.baths+' bath':'')+
+      (urlProp.sqm&&!isNaN(Number(urlProp.sqm))?' · '+Number(urlProp.sqm).toLocaleString()+' m²':'')+'</div>';
+    setSt('urlSt',s('st_imgs')+' ('+urlProp.imgs.length+' found)');
+    urlImgArr=await loadImgs(urlProp.imgs);
+    var copy=buildCopy(urlProp,0);
+    showPanel('urlPanel','urlFields',copy);
+    setSt('urlSt','Images: '+urlImgArr.length+' loaded. Review copy below.');
+  }catch(e){setSt('urlSt',s('st_err')+e.message);console.error(e);}
+}
+
+async function renderFromPanel(mode){
+  var pid=mode==='url'?'urlPanel':'manPanel';
+  var copy=readPanel(pid);
+  var prop=mode==='url'?urlProp:manProp;
+  var imgs=mode==='url'?urlImgArr:manImgs.map(function(m){return m.img;});
+  var slidesId=mode==='url'?'urlSlides':'manSlides';
+  var stId=mode==='url'?'urlSt':'manSt';
+  setSt(stId,s('st_render'));
+  var cvs=renderSlides(buildSlides(prop,copy,imgs),slidesId);
+  if(mode==='url')urlCvs=cvs;else manCvs=cvs;
+  document.getElementById(mode==='url'?'urlCapTxt':'manCapTxt').textContent=copy.cap;
+  document.getElementById(mode==='url'?'urlCap':'manCap').style.display='block';
+  document.getElementById(mode==='url'?'urlDlRow':'manDlRow').style.display='block';
+  setSt(stId,s('st_done'));
+}
+
+// ── MANUAL MODE ───────────────────────────────────────────────────────────
+var dz=document.getElementById('dropZone');
+dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('drag');});
+dz.addEventListener('dragleave',function(){dz.classList.remove('drag');});
+dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('drag');handleFiles(e.dataTransfer.files);});
+function handleFiles(files){
+  Array.from(files).forEach(function(file){
+    if(!file.type.startsWith('image/'))return;
+    var r=new FileReader();r.onload=function(e){
+      var img=new Image();img.onload=function(){manImgs.push({img:img,url:e.target.result,name:file.name});renderThumbs();};
+      img.src=e.target.result;};r.readAsDataURL(file);
+  });
+}
+function renderThumbs(){
+  var row=document.getElementById('thumbRow');row.innerHTML='';
+  manImgs.forEach(function(m,i){
+    var w=document.createElement('div');w.className='tw';
+    var im=document.createElement('img');im.src=m.url;
+    var rm=document.createElement('button');rm.textContent='×';
+    rm.onclick=function(){manImgs.splice(i,1);renderThumbs();};
+    w.appendChild(im);w.appendChild(rm);row.appendChild(w);
+  });
+}
+function pickTier(t){
+  manTier=t;
+  document.querySelectorAll('.tp').forEach(function(el){el.classList.toggle('on',el.dataset.tier===t);});
+}
+function autoTier(){
+  var raw=(document.getElementById('mPrice').value||'').replace(/[,$\s]/g,'');
+  var num=parseFloat(raw);if(!num)return;
+  var cur=document.getElementById('mCur').value;
+  pickTier(getTier(cur==='MXN'?num/MXN_R:num));
+}
+async function runManual(){
+  if(!manImgs.length){setSt('manSt',s('nophoto'));return;}
+  document.getElementById('manPanel').style.display='none';
+  document.getElementById('manSlides').innerHTML='';
+  document.getElementById('manCap').style.display='none';
+  document.getElementById('manDlRow').style.display='none';
+  await loadLogo();
+  var featsRaw=(document.getElementById('mFeats').value||'').trim();
+  manProp={
+    title:document.getElementById('mTitle').value||'',
+    loc:document.getElementById('mLoc').value||'',
+    usd:0,tier:manTier,beds:document.getElementById('mBeds').value||'',
+    baths:document.getElementById('mBaths').value||'',
+    sqm:document.getElementById('mSqm').value||document.getElementById('mLot').value||'',
+    sqft:'',manFeats:featsRaw?featsRaw.split('\n').map(function(l){return l.trim();}).filter(Boolean):[],
+    typeOv:document.getElementById('mType').value
+  };
+  if(manProp.sqm)manProp.sqft=String(Math.round(Number(manProp.sqm)*10.764));
+  showPanel('manPanel','manFields',buildCopy(manProp,0));
+  setSt('manSt',LANG==='es'?'Revisa el copy abajo y presiona Renderizar.':'Review copy below, then press Render.');
+}
+
+// ── DOWNLOAD ─────────────────────────────────────────────────────────────
+async function dlZip(mode){
+  var cvs=mode==='url'?urlCvs:manCvs;if(!cvs.length)return;
+  var zip=new JSZip();
+  await Promise.all(cvs.map(function(c,i){
+    return new Promise(function(res){c.toBlob(function(b){zip.file('CDR_'+mode+'_s'+(i+1)+'.png',b);res();},'image/png');});
+  }));
+  var blob=await zip.generateAsync({type:'blob'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='CDR_'+mode+'_carousel.zip';a.click();
+}
+function copyTxt(id,btn){
+  var t=document.getElementById(id).textContent;
+  navigator.clipboard.writeText(t).then(function(){
+    var o=btn.textContent;btn.textContent=s('copied');
+    setTimeout(function(){btn.textContent=o;},2200);
+  });
+}
+</script>
+</body>
+</html>
