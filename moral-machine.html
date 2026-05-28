@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moral Machine - SEG0404</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body style="margin:0; padding:0; font-family: system-ui, -apple-system, sans-serif; background: #ffffff;">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const API_URL = "https://web-production-8354f.up.railway.app";
+
+    const renderText = (text) =>
+      text.split("\n").map((line, i, arr) => {
+        const parts = line.split(/\*\*(.*?)\*\*/g);
+        return (
+          <span key={i}>
+            {parts.map((p, j) => j % 2 === 1 ? <strong key={j}>{p}</strong> : p)}
+            {i < arr.length - 1 && <br />}
+          </span>
+        );
+      });
+
+    const hasABC = (text) => /\bA\)/.test(text) && /\bB\)/.test(text) && /\bC\)/.test(text);
+
+    function App() {
+      const [phase, setPhase] = React.useState("register");
+      const [name, setName] = React.useState("");
+      const [matricula, setMatricula] = React.useState("");
+      const [regErrors, setRegErrors] = React.useState({});
+      const [messages, setMessages] = React.useState([]);
+      const [loading, setLoading] = React.useState(false);
+      const [reportText, setReportText] = React.useState("");
+      const [caseNum, setCaseNum] = React.useState(1);
+      const [selectedOpt, setSelectedOpt] = React.useState(null);
+      const [reasoning, setReasoning] = React.useState("");
+      const [reflection, setReflection] = React.useState("");
+      const bottomRef = React.useRef(null);
+
+      React.useEffect(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, [messages, loading, selectedOpt, phase]);
+
+      React.useEffect(() => {
+        const style = document.createElement("style");
+        style.textContent = `@media print{body *{visibility:hidden}#printable,#printable *{visibility:visible}#printable{position:fixed;left:0;top:0;width:100%;padding:40px;font-family:Arial,sans-serif;font-size:13px;line-height:1.8;color:#111}.no-print{display:none!important}}`;
+        document.head.appendChild(style);
+        return () => document.head.removeChild(style);
+      }, []);
+
+      const callAPI = async (userText, history) => {
+        const userMsg = { role: "user", content: userText };
+        const updated = [...history, userMsg];
+        setMessages(updated);
+        setLoading(true);
+        try {
+          const res = await fetch(API_URL + "/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messages: updated }),
+          });
+          const raw = await res.text();
+          let data;
+          try { data = JSON.parse(raw); } catch { throw new Error("Error de servidor"); }
+          if (data.error) throw new Error(data.error.message);
+          const aiText = data.content?.[0]?.text ?? "Sin respuesta.";
+          const final = [...updated, { role: "assistant", content: aiText }];
+          setMessages(final);
+          if (aiText.includes("===REPORTE===")) {
+            setReportText(aiText);
+            setPhase("reflection");
+          }
+          return final;
+        } catch (e) {
+          setMessages((prev) => [...prev, { role: "assistant", content: "Error: " + e.message + ". Intenta de nuevo." }]);
+          return null;
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const handleStart = async () => {
+        const errs = {};
+        if (!name.trim()) errs.name = "Escribe tu nombre";
+        if (!matricula.trim()) errs.mat = "Escribe tu matrícula";
+        if (Object.keys(errs).length) { setRegErrors(errs); return; }
+        setRegErrors({});
+        setPhase("chat");
+        await callAPI(`Nombre: ${name.trim()}. Matricula: ${matricula.trim()}.`, []);
+      };
+
+      const handleSubmitAnswer = async () => {
+        if (!selectedOpt || !reasoning.trim() || loading) return;
+        const text = `Elijo opcion ${selectedOpt}. Razonamiento: ${reasoning.trim()}`;
+        const prevOpt = selectedOpt;
+        const prevR = reasoning;
+        setSelectedOpt(null);
+        setReasoning("");
+        const result = await callAPI(text, messages);
+        if (result) setCaseNum((n) => Math.min(n + 1, 3));
+        else { setSelectedOpt(prevOpt); setReasoning(prevR); }
+      };
+
+      const extractReport = () => {
+        const s = reportText.indexOf("===REPORTE===");
+        const e = reportText.indexOf("===FIN===");
+        return s >= 0 ? reportText.slice(s, e >= 0 ? e + 9 : undefined) : reportText;
+      };
+
+      const lastAI = [...messages].reverse().find((m) => m.role === "assistant");
+      const showAnswerPanel = lastAI && hasABC(lastAI.content) && !loading && phase === "chat";
+
+      const S = {
+        wrap: { maxWidth: 660, margin: "0 auto", padding: "0.75rem", fontFamily: "system-ui,sans-serif" },
+        card: { background: "#ffffff", border: "1px solid #e0e0e0", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" },
+        inp: { width: "100%", padding: "9px 12px", fontSize: 14, border: "1px solid #ddd", borderRadius: 8, background: "#f9f9f9", color: "#111", outline: "none", fontFamily: "inherit", boxSizing: "border-box" },
+        lbl: { display: "block", fontSize: 11, fontWeight: 600, color: "#666", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.5px" },
+        btn: { padding: "10px", fontSize: 13, fontWeight: 500, fontFamily: "inherit", background: "#f0f0f0", border: "1px solid #ddd", borderRadius: 8, color: "#111", cursor: "pointer", width: "100%" },
+      };
+
+      if (phase === "register") return (
+        <div style={{ ...S.wrap, paddingTop: "2rem", maxWidth: 500 }}>
+          <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
+            <div style={{ fontSize: 40 }}>🤖</div>
+            <div style={{ fontSize: 19, fontWeight: 600, color: "#111", marginTop: 8 }}>Moral Machine</div>
+            <div style={{ fontSize: 13, color: "#666", marginTop: 3 }}>SEG0404 · 3 casos · PDF al final</div>
+          </div>
+          <div style={S.card}>
+            <div style={{ padding: "1.25rem" }}>
+              <div style={{ marginBottom: 14 }}>
+                <label style={S.lbl}>Nombre completo</label>
+                <input style={S.inp} value={name} onChange={e => setName(e.target.value)} placeholder="Ej. María García López"
+                  onKeyDown={e => e.key === "Enter" && document.getElementById("mat-inp")?.focus()} />
+                {regErrors.name && <div style={{ fontSize: 12, color: "#d32f2f", marginTop: 4 }}>{regErrors.name}</div>}
+              </div>
+              <div style={{ marginBottom: 20 }}>
+                <label style={S.lbl}>Matrícula</label>
+                <input id="mat-inp" style={S.inp} value={matricula} onChange={e => setMatricula(e.target.value)} placeholder="Ej. A01234567"
+                  onKeyDown={e => e.key === "Enter" && handleStart()} />
+                {regErrors.mat && <div style={{ fontSize: 12, color: "#d32f2f", marginTop: 4 }}>{regErrors.mat}</div>}
+              </div>
+              <button onClick={handleStart} style={S.btn}>Comenzar sesión →</button>
+              <p style={{ fontSize: 12, color: "#999", textAlign: "center", marginTop: 10 }}>3 casos · reflexión · PDF para tu profesora</p>
+            </div>
+          </div>
+        </div>
+      );
+
+      if (phase === "reflection") return (
+        <div style={{ ...S.wrap, maxWidth: 580 }}>
+          <div style={S.card}>
+            <div style={{ padding: "12px 14px", borderBottom: "1px solid #e0e0e0" }}>
+              <div style={{ fontSize: 14, fontWeight: 500, color: "#111" }}>✍️ Reflexión final</div>
+              <div style={{ fontSize: 12, color: "#666" }}>{name} · {matricula}</div>
+            </div>
+            <div style={{ padding: "1.25rem" }}>
+              <p style={{ fontSize: 14, lineHeight: 1.7, color: "#111", marginBottom: 14 }}>
+                Conecta esta experiencia con tu trabajo en la <strong>casa hogar con niñas, niños y adolescentes (NNA)</strong>.
+              </p>
+              <label style={S.lbl}>Tu reflexión personal</label>
+              <textarea value={reflection} onChange={e => setReflection(e.target.value)}
+                placeholder="¿Qué descubriste de ti mismo/a? ¿De la sociedad? ¿De tu carrera? ¿Cómo conecta con tu trabajo en la casa hogar?" rows={7}
+                style={{ ...S.inp, resize: "vertical", lineHeight: 1.7, marginBottom: 14 }} />
+              <button onClick={() => { if (reflection.trim()) setPhase("done"); }}
+                disabled={!reflection.trim()}
+                style={{ ...S.btn, opacity: reflection.trim() ? 1 : 0.4, cursor: reflection.trim() ? "pointer" : "default" }}>
+                Ver mi reporte →
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+
+      if (phase === "done") {
+        const date = new Date().toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" });
+        return (
+          <div style={{ maxWidth: 700, margin: "0 auto", padding: "1rem", fontFamily: "system-ui,sans-serif" }}>
+            <div className="no-print" style={{ background: "#e8f5e9", border: "1px solid #4caf50", borderRadius: 12, padding: "16px 20px", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 500, color: "#2e7d32" }}>✅ ¡Sesión completada!</div>
+                <div style={{ fontSize: 13, color: "#2e7d32", marginTop: 3 }}>Imprime → guarda como PDF → sube a la plataforma</div>
+              </div>
+              <button onClick={() => window.print()}
+                style={{ padding: "10px 20px", fontSize: 14, fontWeight: 600, fontFamily: "inherit", background: "transparent", border: "1.5px solid #4caf50", borderRadius: 8, color: "#2e7d32", cursor: "pointer", whiteSpace: "nowrap" }}>
+                🖨️ Imprimir PDF
+              </button>
+            </div>
+            <div id="printable" style={{ background: "#ffffff", border: "1px solid #e0e0e0", borderRadius: 12, padding: "32px 36px" }}>
+              <div style={{ fontSize: 10, letterSpacing: "2px", textTransform: "uppercase", color: "#0f6e56", fontWeight: 600, marginBottom: 8 }}>SEG0404 · Ética Aplicada</div>
+              <div style={{ fontSize: 22, fontWeight: 600, color: "#111", marginBottom: 6 }}>Reporte Moral Machine</div>
+              <div style={{ fontSize: 13, color: "#666", paddingBottom: 16, borderBottom: "2px solid #0f6e56", marginBottom: 24 }}>
+                {name} · Matrícula: {matricula} · {date}
+              </div>
+              <pre style={{ fontFamily: "inherit", fontSize: 13, lineHeight: 1.85, whiteSpace: "pre-wrap", color: "#111", marginBottom: 24 }}>
+                {extractReport()}
+              </pre>
+              <div style={{ background: "#f5f5f5", borderLeft: "3px solid #0f6e56", padding: "16px 20px", borderRadius: "0 8px 8px 0" }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#111", marginBottom: 8 }}>Reflexión · Casa Hogar NNA</div>
+                <p style={{ fontSize: 13, lineHeight: 1.85, color: "#111", whiteSpace: "pre-wrap" }}>{reflection}</p>
+              </div>
+              <div style={{ marginTop: 32, paddingTop: 12, borderTop: "1px solid #e0e0e0", fontSize: 11, color: "#999", textAlign: "center" }}>
+                Agente de Ética Aplicada SEG0404
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div style={S.wrap}>
+          <div style={S.card}>
+            <div style={{ padding: "10px 14px", borderBottom: "1px solid #e0e0e0", display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 18 }}>🤖</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 500, color: "#111" }}>Moral Machine · SEG0404</div>
+                <div style={{ fontSize: 11, color: "#666" }}>{name} · {matricula}</div>
+              </div>
+              <div style={{ fontSize: 12, color: "#999" }}>Caso {caseNum} de 3</div>
+            </div>
+            <div style={{ height: 3, background: "#e0e0e0" }}>
+              <div style={{ height: "100%", width: `${((caseNum - 1) / 3) * 100}%`, background: "#2196F3", transition: "width 0.5s" }} />
+            </div>
+
+            <div style={{ padding: "14px", display: "flex", flexDirection: "column", gap: 12, minHeight: 80 }}>
+              {messages.map((msg, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 8 }}>
+                  {msg.role === "assistant" && (
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#e3f2fd", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>🤖</div>
+                  )}
+                  <div style={{
+                    maxWidth: "82%", padding: "10px 14px", fontSize: 14, lineHeight: 1.7,
+                    borderRadius: msg.role === "user" ? "16px 4px 16px 16px" : "4px 16px 16px 16px",
+                    background: msg.role === "user" ? "#e3f2fd" : "#f5f5f5",
+                    color: "#111",
+                    border: "1px solid #e0e0e0"
+                  }}>
+                    {renderText(msg.content)}
+                  </div>
+                </div>
+              ))}
+              {loading && (
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+                  <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#e3f2fd", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>🤖</div>
+                  <div style={{ padding: "10px 14px", borderRadius: "4px 16px 16px 16px", background: "#f5f5f5", border: "1px solid #e0e0e0", fontSize: 14, color: "#999" }}>Pensando…</div>
+                </div>
+              )}
+              <div ref={bottomRef} />
+            </div>
+
+            {showAnswerPanel && !selectedOpt && (
+              <div style={{ margin: "0 14px 14px", padding: "14px", background: "#f5f5f5", border: "1px solid #e0e0e0", borderRadius: 10 }}>
+                <div style={{ ...S.lbl, marginBottom: 10 }}>Elige tu opción</div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  {["A", "B", "C"].map(o => (
+                    <div key={o} onClick={() => setSelectedOpt(o)}
+                      style={{ flex: 1, padding: "16px 8px", textAlign: "center", fontSize: 20, fontWeight: 700, border: "1px solid #ddd", borderRadius: 8, color: "#111", background: "#ffffff", cursor: "pointer", userSelect: "none" }}
+                      onMouseOver={e => e.currentTarget.style.background = "#e3f2fd"}
+                      onMouseOut={e => e.currentTarget.style.background = "#ffffff"}>
+                      {o}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {showAnswerPanel && selectedOpt && (
+              <div style={{ margin: "0 14px 14px", padding: "14px", background: "#f5f5f5", border: "1px solid #e0e0e0", borderRadius: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, fontSize: 18, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", background: "#e3f2fd", color: "#1976d2", border: "1px solid #90caf9" }}>
+                    {selectedOpt}
+                  </div>
+                  <span style={{ fontSize: 13, color: "#666" }}>
+                    Elegiste <strong>{selectedOpt}</strong> · <span onClick={() => { setSelectedOpt(null); setReasoning(""); }} style={{ color: "#1976d2", cursor: "pointer", fontSize: 12 }}>cambiar</span>
+                  </span>
+                </div>
+                <label style={S.lbl}>¿Por qué elegiste esa opción?</label>
+                <textarea value={reasoning} onChange={e => setReasoning(e.target.value)}
+                  placeholder="Tu razonamiento ético aquí…" rows={3} autoFocus
+                  style={{ ...S.inp, resize: "vertical", lineHeight: 1.6, marginBottom: 10 }} />
+                <button onClick={handleSubmitAnswer} disabled={!reasoning.trim()}
+                  style={{ ...S.btn, opacity: reasoning.trim() ? 1 : 0.4, cursor: reasoning.trim() ? "pointer" : "default" }}>
+                  Enviar respuesta →
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
