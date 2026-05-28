@@ -1,13 +1,14 @@
 # Carousel Scraper - Final
 
-Professional carousel generator for real estate listings. Scrapes property data from URLs and generates Instagram carousel slides (8 slides, 1080x1350px).
+Professional carousel generator for Costa Dream Realty real estate listings. Scrapes property data from URLs and generates Instagram carousel slides (8 slides, 1080x1350px) with **unique, property-specific editorial copy**.
 
 ## Features
 
 - **URL Scraping**: Automatically fetch property data and images from any real estate website
+- **Dynamic Copy Generation**: Each slide displays unique copy specific to the property (beds/baths, size, amenities, location)
 - **Manual Mode**: Upload photos and manually enter property details
-- **Multi-language**: Full English/Spanish support
-- **Smart Copy**: Auto-generates marketing copy based on location and property type
+- **Multi-language**: Full English/Spanish support with property-aware translations
+- **Smart Copy**: Auto-generates marketing copy based on property type, size, and features
 - **Canvas Rendering**: High-quality slides with professional typography
 - **Bulk Download**: Export all 8 slides as PNG or ZIP
 
@@ -47,8 +48,8 @@ python3 scraper-proxy.py 5001
    python3 scraper-proxy.py 5001
    ```
 
-2. **Open the carousel generator**:
-   - Open `CDR-Carousel-2025-05-26-FINAL.html` in a browser
+2. **Open the carousel generator** (via HTTP server on port 8000):
+   - Visit `http://localhost:8000/CDR-Carousel-FINAL-20260527-125001.html` in a browser
    
 3. **Paste property URL**:
    - Works with any real estate site (costadreamrealty.com, EasyBroker, Airbnb, etc.)
@@ -65,8 +66,11 @@ python3 scraper-proxy.py 5001
 
 ## Files
 
-- **CDR-Carousel-2025-05-26-FINAL.html** - Main carousel generator (all-in-one HTML file)
-- **scraper-proxy.py** - Local CORS proxy server (required for URL scraping)
+- **CDR-Carousel-FINAL-20260527-125001.html** - Main carousel generator (all-in-one HTML file with latest fixes)
+- **scraper-proxy.py** - Local CORS proxy server with CORS headers (required for URL scraping)
+  - Must be run on port 5001
+  - Handles both GET and OPTIONS requests
+  - Returns `Access-Control-Allow-Origin: *` header
 
 ## How to Use
 
@@ -103,9 +107,9 @@ python3 scraper-proxy.py 5001
 ## Color Tiers
 
 Price automatically selects color scheme:
-- **Navy** (#1c2e45) - Under $500k
-- **Camel** (#a07830) - $500k-$2M
-- **Beige** (#f0e9d6) - $2M+
+- **Navy** (#1c2e45) - $800K+ USD
+- **Camel** (#a07830) - $500K–$800K USD
+- **Beige** (#f0e9d6) - Under $500K USD
 
 ## Location-Specific Copy
 
@@ -170,6 +174,108 @@ If images don't load from a URL:
 - **Gradients**: Removed (solid colors only)
 - **Notebook lines**: Removed (clean solid background)
 
+## Proxy Server Setup Guide
+
+The carousel **requires a local proxy server** to scrape URLs (due to browser CORS restrictions).
+
+### Quick Start (Two Servers Required)
+
+```bash
+# 1. Install Python 3 (if not already installed)
+# Check: python3 --version
+
+# 2. Install Flask & Requests
+pip install flask requests
+
+# 3. Terminal Window #1 - Run the CORS proxy server (port 5001)
+python3 scraper-proxy.py 5001
+
+# Output should show:
+# 🚀 Proxy running at http://localhost:5001
+
+# 4. Terminal Window #2 - Run HTTP server for carousel (port 8000)
+python3 -m http.server 8000
+
+# 5. Open carousel in browser
+# Visit: http://localhost:8000/CDR-Carousel-FINAL-20260527-125001.html
+```
+
+### Critical: Why Both Servers?
+
+**DO NOT open the carousel as `file:///` from your computer.** This breaks all fetch requests due to browser security sandboxing.
+
+- ❌ **WRONG**: `file:///Users/eontiveros/CDR-Carousel-FINAL-20260527-125001.html`
+- ✅ **CORRECT**: `http://localhost:8000/CDR-Carousel-FINAL-20260527-125001.html`
+
+### How It Works
+
+When you paste a property URL in the carousel:
+1. Browser (on `http://localhost:8000`) sends request to proxy at `http://localhost:5001`
+2. Proxy MUST send CORS headers (`Access-Control-Allow-Origin: *`) for browser to accept response
+3. Proxy fetches the actual website (bypasses CORS restrictions)
+4. Carousel extracts title, price, bedrooms, images, etc.
+5. Copy is generated based on scraped property data
+6. 8 slides render with unique editorial copy
+
+### Proxy CORS Headers (Critical Fix)
+
+The `scraper-proxy.py` now includes proper CORS headers:
+```python
+# Handles browser preflight requests
+@app.route('/', methods=['GET', 'OPTIONS'])
+def proxy():
+    if request.method == 'OPTIONS':
+        return '', 200, {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+        }
+    # ... fetch and return with CORS header
+    return response.text, 200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Access-Control-Allow-Origin': '*'
+    }
+```
+
+Without these headers, the browser blocks the proxy response even though the server is running. **This was the root cause of "Proxy failed" errors.**
+
+### Why Port 5001?
+
+- **Port 5000** is blocked by macOS AirPlay Receiver
+- **Port 5001** is open and conflict-free
+- Proxy script accepts custom ports: `python3 scraper-proxy.py 9999` (example)
+
+### Keep Proxy Running
+
+The proxy must **stay running** while you use the carousel:
+- Open terminal, run `python3 scraper-proxy.py 5001`
+- Keep terminal window open
+- Open carousel in browser (same machine)
+- Paste URLs and scrape
+
+### Multiple Properties
+
+You can scrape as many properties as you want in one session:
+1. Start proxy once: `python3 scraper-proxy.py 5001`
+2. Open carousel HTML
+3. Paste first URL → generates slides
+4. Paste second URL → generates new slides
+5. (proxy runs continuously in background)
+
+### Proxy Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| "Address already in use" | Kill existing proxy: `pkill -f scraper-proxy.py` |
+| "Command not found: python3" | Install Python 3 from python.org |
+| "No module named 'flask'" | Run: `pip install flask requests` |
+| "Connection refused" | Make sure proxy is running in terminal |
+| "All proxies failed" | Verify: `lsof -i :5001` should show the proxy running |
+
+### Proxy File Location
+
+Keep `scraper-proxy.py` in the same folder as your carousel HTML file (or any folder you can access).
+
 ## Troubleshooting
 
 | Problem | Solution |
@@ -182,7 +288,8 @@ If images don't load from a URL:
 
 ## Version History
 
-- **Final (2025-05-26)**: Removed gradients, fixed text margins, local proxy on 5001, solid CTA background
+- **2026-05-27**: Fixed CORS proxy headers issue. Proxy now returns `Access-Control-Allow-Origin: *` header. Must serve carousel via HTTP server (port 8000) not file://. Added OPTIONS request handling for preflight.
+- **2025-05-26**: Removed gradients, fixed text margins, local proxy on 5001, solid CTA background, unique property-specific editorial copy generation
 - Previous versions: Experimented with external proxies (unstable)
 
 ---

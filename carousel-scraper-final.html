@@ -111,6 +111,13 @@ button:hover{opacity:.82}
   <p id="L_upload">⬆ Drag & drop photos · click to select · order = slide order</p>
 </div>
 <div class="trow" id="thumbRow"></div>
+
+<div class="lbl" style="margin-top:16px">Logo (optional)</div>
+<div class="uparea" id="logoZone">
+  <input type="file" id="logoIn" accept="image/*" onchange="handleLogo(this.files)">
+  <p style="font-size:12px;color:rgba(255,255,255,.27);pointer-events:none">⬆ Upload your logo · appears on slides</p>
+</div>
+<div class="trow" id="logoThumb"></div>
 <div class="fg fg2">
   <div class="fld" style="grid-column:1/-1"><label id="L_ftitle">Property Title</label>
     <input type="text" id="mTitle" placeholder="e.g. Oceanfront Villa in Mazunte"></div>
@@ -386,7 +393,7 @@ async function fetchAll(){
 
 // ── PROXY FETCH (for non-CDR URLs) ────────────────────────────────────────
 async function proxyFetch(url){
-  var proxies=['http://localhost:5000/?url=','https://api.allorigins.win/get?url=','https://cors-anywhere.herokuapp.com/'];
+  var proxies=['http://localhost:5001/?url=','https://api.allorigins.win/get?url=','https://cors-anywhere.herokuapp.com/'];
   for(var i=0;i<proxies.length;i++){
     try{
       var purl=proxies[i];
@@ -755,6 +762,23 @@ function renderThumbs(){
     rm.onclick=function(){manImgs.splice(i,1);renderThumbs();};
     w.appendChild(im);w.appendChild(rm);row.appendChild(w);
   });
+}
+function handleLogo(files){
+  if(!files.length)return;
+  var file=files[0];
+  if(!file.type.startsWith('image/'))return;
+  var r=new FileReader();r.onload=function(e){
+    var img=new Image();img.onload=function(){logoImg=img;renderLogoThumb();};
+    img.src=e.target.result;};r.readAsDataURL(file);
+}
+function renderLogoThumb(){
+  var row=document.getElementById('logoThumb');row.innerHTML='';
+  if(!logoImg)return;
+  var w=document.createElement('div');w.className='tw';
+  var im=document.createElement('img');im.src=logoImg.src;
+  var rm=document.createElement('button');rm.textContent='×';
+  rm.onclick=function(){logoImg=null;renderLogoThumb();};
+  w.appendChild(im);w.appendChild(rm);row.appendChild(w);
 }
 function pickTier(t){
   manTier=t;

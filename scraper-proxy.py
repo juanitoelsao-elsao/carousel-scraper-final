@@ -9,8 +9,15 @@ from urllib.parse import unquote
 
 app = Flask(__name__)
 
-@app.route('/', methods=['GET'])
+@app.route('/', methods=['GET', 'OPTIONS'])
 def proxy():
+    if request.method == 'OPTIONS':
+        return '', 200, {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+        }
+
     url = request.args.get('url', '').strip()
 
     if not url:
@@ -25,7 +32,10 @@ def proxy():
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
 
-        return response.text, 200, {'Content-Type': 'text/html; charset=utf-8'}
+        return response.text, 200, {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Access-Control-Allow-Origin': '*'
+        }
 
     except requests.exceptions.Timeout:
         return jsonify({'error': 'Request timeout'}), 504
