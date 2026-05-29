@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEG0404 · Ética Aplicada [v15]</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f6e56 0%, #1b8a70 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        .container { max-width: 700px; margin: 0 auto; }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .hidden { display: none; }
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        button {
+            background: #0f6e56;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 600;
+        }
+        button:hover { background: #0d5744; }
+        .case-text {
+            background: #f5f5f5;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        .feedback { background: #e8f5e9; padding: 16px; border-left: 4px solid #4caf50; margin: 20px 0; border-radius: 4px; font-size: 13px; line-height: 1.6; color: #2e7d32; }
+        .print-btn { background: #ff9800; }
+        .print-btn:hover { background: #f57c00; }
+        @media print {
+            body { background: white; padding: 0; }
+            .no-print { display: none !important; }
+            .card { box-shadow: none; page-break-inside: avoid; margin-bottom: 30px; }
+        }
+        h1 { color: white; text-align: center; margin-bottom: 32px; }
+        .section-title { font-size: 12px; color: #0f6e56; font-weight: 700; text-transform: uppercase; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Máquina Moral · SEG0404</h1>
+
+        <!-- Step 1: Registration -->
+        <div id="step1" class="card">
+            <div class="section-title">Paso 1: Regístrate</div>
+            <input type="text" id="name" placeholder="Nombre completo">
+            <input type="text" id="id" placeholder="Matrícula (A01234567)">
+            <button onclick="startQuiz()">Comenzar →</button>
+        </div>
+
+        <!-- All Cases on One Page -->
+        <div id="cases" class="hidden">
+            <div id="case-container-1" class="card">
+                <div class="section-title" id="case-label-1"></div>
+                <div class="case-text" id="case-text-1"></div>
+                <label><strong>Tu opción:</strong><br>
+                    <input type="radio" name="c1" value="A"> <span id="opt-a-1"></span> &nbsp;&nbsp;
+                    <input type="radio" name="c1" value="B"> <span id="opt-b-1"></span> &nbsp;&nbsp;
+                    <input type="radio" name="c1" value="C"> <span id="opt-c-1"></span>
+                </label>
+                <textarea id="r1" placeholder="¿Por qué?"></textarea>
+                <button onclick="submitCase(1)">Enviar →</button>
+                <div id="fb1" class="hidden feedback"></div>
+                <button id="next1" class="hidden" style="background: #2196f3; margin-top: 16px;" onclick="nextCase()">Siguiente →</button>
+            </div>
+
+            <div id="case-container-2" class="card hidden">
+                <div class="section-title" id="case-label-2"></div>
+                <div class="case-text" id="case-text-2"></div>
+                <label><strong>Tu opción:</strong><br>
+                    <input type="radio" name="c2" value="A"> <span id="opt-a-2"></span> &nbsp;&nbsp;
+                    <input type="radio" name="c2" value="B"> <span id="opt-b-2"></span> &nbsp;&nbsp;
+                    <input type="radio" name="c2" value="C"> <span id="opt-c-2"></span>
+                </label>
+                <textarea id="r2" placeholder="¿Por qué?"></textarea>
+                <button onclick="submitCase(2)">Enviar →</button>
+                <div id="fb2" class="hidden feedback"></div>
+                <button id="next2" class="hidden" style="background: #2196f3; margin-top: 16px;" onclick="nextCase()">Siguiente →</button>
+            </div>
+
+            <div id="case-container-3" class="card hidden">
+                <div class="section-title" id="case-label-3"></div>
+                <div class="case-text" id="case-text-3"></div>
+                <label><strong>Tu opción:</strong><br>
+                    <input type="radio" name="c3" value="A"> <span id="opt-a-3"></span> &nbsp;&nbsp;
+                    <input type="radio" name="c3" value="B"> <span id="opt-b-3"></span> &nbsp;&nbsp;
+                    <input type="radio" name="c3" value="C"> <span id="opt-c-3"></span>
+                </label>
+                <textarea id="r3" placeholder="¿Por qué?"></textarea>
+                <button onclick="submitCase(3)">Enviar →</button>
+                <div id="fb3" class="hidden feedback"></div>
+                <button id="next3" class="hidden" style="background: #2196f3; margin-top: 16px;" onclick="goReflection()">Siguiente →</button>
+            </div>
+        </div>
+
+        <!-- Reflection -->
+        <div id="reflection-step" class="card hidden">
+            <div class="section-title">Reflexión Personal</div>
+            <h2 style="font-size: 18px; color: #0f6e56; margin-bottom: 16px;">¿Qué descubriste?</h2>
+            <textarea id="reflection" placeholder="Escribe tu reflexión..."></textarea>
+            <button onclick="generateReport()">Ver mi reporte →</button>
+        </div>
+
+        <!-- Report (for printing) -->
+        <div id="report-step" class="hidden">
+            <div class="card">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <h1 style="color: #333; margin-bottom: 8px;">Reporte SEG0404</h1>
+                    <div style="font-size: 14px; color: #666;">Ética Aplicada</div>
+                </div>
+                <div style="text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e0e0e0;">
+                    <div style="font-size: 12px; color: #999;">Estudiante:</div>
+                    <div id="rname" style="font-size: 18px; font-weight: 600;"></div>
+                    <div style="font-size: 12px; color: #999;">Matrícula: <span id="rid"></span></div>
+                </div>
+            </div>
+
+            <div id="case1-report" class="card"></div>
+            <div id="case2-report" class="card"></div>
+            <div id="case3-report" class="card"></div>
+            <div id="reflection-report" class="card"></div>
+
+            <div class="card" style="text-align: center;">
+                <button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const allCases = [
+            {
+                id: 1,
+                title: "En la Avenida Principal",
+                text: "Es mediodía en una avenida comercial concurrida. Un automóvil autónomo pierde completamente los frenos. El conductor intenta frenar, pero nada responde. El vehículo acelera incontrolablemente hacia adelante. No hay tiempo para detenerlo.",
+                optionA: "Impactar contra un muro de concreto",
+                optionB: "Desviarse hacia la izquierda, donde caminan personas",
+                optionC: "Desviarse hacia la derecha, donde hay más gente",
+                context: "A la izquierda, en la acera, hay un grupo de personas: dos niños pequeños, una madre, y dos adultos más esperando cruzar. A la derecha, una persona mayor y un adulto esperan en la acera también. El muro del edificio está duro y sólido. El vehículo debe impactar algo."
+            },
+            {
+                id: 2,
+                title: "Falla en las Vías",
+                text: "Un tren de carga pesado pierde los frenos en una zona de reparaciones ferroviarias. El operario ve el tren venir pero los cambios de vía ya están siendo accionados automáticamente. Hay tres vías. El tren irá hacia una de ellas.",
+                optionA: "La vía donde están trabajando",
+                optionB: "La vía donde hay un trabajador solo",
+                optionC: "La vía donde una persona mayor cruza con dos niños",
+                context: "Primera vía: Un equipo de 5 trabajadores está reparando las vías. No pueden escuchar el tren que se acerca. Segunda vía: Un trabajador solo escucha música y no ve nada. Tercera vía: Una persona mayor está ayudando a dos niños a cruzar las vías. El tren llegará a una vía."
+            },
+            {
+                id: 3,
+                title: "Bajo los Escombros",
+                text: "Un edificio ha colapsado. El equipo de rescate llega rápido. Encuentran a tres personas atrapadas en diferentes lugares bajo los escombros. El robot de rescate tiene suficiente batería para rescatar a una sola persona. Después, la estructura restante se derrumbará completamente. El tiempo se agota.",
+                optionA: "Una niña pequeña con lesiones graves",
+                optionB: "Un médico con lesiones menores",
+                optionC: "Una madre con su bebé",
+                context: "La niña de diez años está consciente pero su cuerpo está atrapado entre escombros pesados. El médico de cuarenta y cinco años puede moverse un poco, está herido pero lúcido. Una madre de treinta y cinco años protege a su bebé de dos años bajo los escombros, intentando mantenerlo con vida. Solo hay tiempo para uno."
+            },
+            {
+                id: 4,
+                title: "Calle Llena de Gente",
+                text: "Un autobús de transporte público pierde completamente los frenos en una calle céntrica atestada de peatones. El conductor no puede controlar el vehículo. El autobús seguirá adelante y golpeará a alguien.",
+                optionA: "Un grupo en la esquina",
+                optionB: "Personas en medio de la calle",
+                optionC: "Personas esperando en una parada",
+                context: "A la izquierda, en la esquina, hay tres adultos jóvenes esperando el cambio de luz. En el centro de la calle, un adulto ayuda a un niño a cruzar, sosteniendo su mano. A la derecha, en la parada de autobús, hay cuatro personas esperando: dos personas mayores y dos personas más jóvenes. El autobús los golpeará a uno de estos grupos."
+            },
+            {
+                id: 5,
+                title: "En la Plaza Comercial",
+                text: "Un vehículo de reparto autónomo pierde todo control en una plaza comercial. Hay gente y animales en diferentes direcciones. El vehículo no puede frenar y chocará con algo.",
+                optionA: "Perros jugando en la plaza",
+                optionB: "Personas cruzando la calle",
+                optionC: "Una persona mayor con gatos",
+                context: "En la plaza comercial, un grupo de seis perros grandes está jugando sin correa. En una calle próxima, dos padres acompañan a tres niños pequeños cruzando. En la parada de autobús, una señora mayor sostiene bolsas de compras, y dentro de dos jaulas, hay cuatro gatos. El vehículo impactará a uno de estos grupos."
+            },
+            {
+                id: 6,
+                title: "Rescate en el Río",
+                text: "Una tormenta repentina ha volcado varios botes en un río. El agua es fuerte y peligrosa. Un bote de rescate llega rápido, pero solo tiene espacio para rescatar a un grupo de personas o animales. El tiempo corre.",
+                optionA: "Un grupo de adultos jóvenes",
+                optionB: "Una persona mayor y animales rescatados",
+                optionC: "Niños y un adulto con mascotas",
+                context: "En un área, tres adultos jóvenes nadan con habilidad. Saben cómo mantenerse a flote y pueden resistir más tiempo. En otra zona, una mujer mayor lucha en el agua junto a cinco perros que rescataba en camino a un santuario. En un tercer punto, dos hermanos pequeños están con un adulto que no sabe nadar bien, y cargan dos gatos en jaulas. El bote solo rescata a uno de estos grupos."
+            },
+            {
+                id: 7,
+                title: "En el Almacén",
+                text: "Un carrito de carga grande pierde los frenos en una zona comercial. Está a punto de chocar. El sistema debe decidir hacia dónde desviarse.",
+                optionA: "Hacia una pared del almacén",
+                optionB: "Hacia personas mayores en la acera",
+                optionC: "Hacia la entrada del refugio de animales",
+                context: "Delante hay una pared sólida de un almacén. No hay nadie allí, solo daños materiales. A un lado, en la acera, hay tres personas adultas mayores esperando un autobús. Al otro lado, la entrada de un refugio de animales está abierta, y adentro hay ocho perros. El carrito chocará con algo."
+            },
+            {
+                id: 8,
+                title: "En el Campo, Donde se Cruzan las Vías",
+                text: "Un tren de carga pierde los frenos en una zona rural. Hay tres vías ferroviarias que se cruzan. El sistema automático debe decidir qué vía seguirá.",
+                optionA: "Vía de los trabajadores",
+                optionB: "Vía del trabajador solitario",
+                optionC: "Vía de la familia",
+                context: "Primera vía: Un equipo de trabajadores está reparando las vías. No ven el tren que se acerca por el ruido del trabajo. Segunda vía: Un trabajador está solo, escuchando música, desconectado de su entorno. Tercera vía: Una persona mayor está ayudando a dos niños pequeños a cruzar las vías. El tren llegará a una vía."
+            },
+            {
+                id: 9,
+                title: "Caída del Cielo",
+                text: "Un drone pesado de entrega ha perdido todo control electrónico en el aire sobre un área poblada. Está cayendo sin poder detenerse. Va a impactar algo abajo.",
+                optionA: "Personas mayores descansando",
+                optionB: "Perros jugando",
+                optionC: "Niños en un parque",
+                context: "Debajo, en un parque municipal, hay tres personas jubiladas sentadas disfrutando del sol. En una zona abierta cercana, seis perros medianos están saltando y jugando sin preocupaciones. En una plaza pública, cinco niños pequeños juegan en un parque infantil mientras dos adultos los supervisan. El drone cae sobre uno de estos lugares."
+            },
+            {
+                id: 10,
+                title: "Emergencia Médica sin Frenos",
+                text: "Una ambulancia que transportaba pacientes críticos pierde los frenos en una calle urbana. Adentro hay dos pacientes graves. El vehículo está fuera de control y va a golpear algo.",
+                optionA: "Personas esperando en parada",
+                optionB: "Niños en un parque",
+                optionC: "Un auto estacionado",
+                context: "En la ambulancia viajan dos pacientes en estado crítico, luchando por sus vidas. En una parada de autobús, cuatro personas mayores esperan transporte. En un parque cercano, dos niños hermanos están jugando con tres perros pequeños. En una calle, un auto está estacionado con un adulto adentro. La ambulancia impactará a uno de estos."
+            },
+            {
+                id: 11,
+                title: "Después del Desastre",
+                text: "Después de un desastre natural devastador, un vehículo de rescate está tratando de llegar a sobrevivientes. Hay tres lugares donde se sabe que hay gente atrapada, pero solo hay camino despejado hacia uno de ellos. Después de esta ruta, no habrá acceso a ningún otro lugar.",
+                optionA: "Donde están los adultos mayores",
+                optionB: "Donde están los niños",
+                optionC: "Donde están los animales",
+                context: "Ruta uno: Tres personas mayores están atrapadas en los escombros de un edificio, sin comida ni agua, esperando ayuda. Ruta dos: Cinco niños pequeños y una educadora están en un sótano improvisado, sin salida de emergencia, esperando ser rescatados. Ruta tres: Un centro de rescate animal tiene más de veinte animales (gatos, perros) sin agua ni comida, también esperando ayuda. El vehículo solo puede hacer esta ruta una vez."
+            },
+            {
+                id: 12,
+                title: "En el Centro Histórico",
+                text: "Un tranvía ha perdido todo control electrónico en las calles del centro histórico durante la hora de mayor tránsito. Va a impactar sobre uno de los rieles. Hay gente en las tres vías.",
+                optionA: "Adultos esperando cruzar",
+                optionB: "Mujeres mayores con animales rescatados",
+                optionC: "Un niño pequeño con mascotas",
+                context: "Primera vía: Siete adultos de diferentes edades están esperando cruzar, una mezcla de turistas y residentes locales. Segunda vía: Dos amigas jubiladas están cruzando, trasladando cuatro gatos rescatados en jaulas hacia un santuario que los acogerá. Tercera vía: Un niño pequeño está en un área de juego protegida, acompañado de sus tres perros. El tranvía impactará una de estas vías."
+            }
+        ];
+
+        let data = { name: '', id: '', cases: {}, selectedCaseIds: [] };
+        let currentCaseIndex = 0;
+
+        function getRandomCases(count) {
+            const shuffled = [...allCases].sort(() => Math.random() - 0.5);
+            return shuffled.slice(0, count);
+        }
+
+        function startQuiz() {
+            const name = document.getElementById('name').value.trim();
+            const id = document.getElementById('id').value.trim();
+            if (!name || !id) { alert('Completa nombre y matrícula'); return; }
+            data.name = name;
+            data.id = id;
+
+            const selectedCases = getRandomCases(3);
+            data.selectedCaseIds = selectedCases.map(c => c.id);
+
+            selectedCases.forEach((caseObj, idx) => {
+                const pos = idx + 1;
+                document.getElementById(`case-label-${pos}`).textContent = `Caso ${pos} de 3`;
+                document.getElementById(`case-text-${pos}`).innerHTML = `<strong>${caseObj.title}</strong><br><br>${caseObj.context}`;
+                document.getElementById(`opt-a-${pos}`).textContent = caseObj.optionA;
+                document.getElementById(`opt-b-${pos}`).textContent = caseObj.optionB;
+                document.getElementById(`opt-c-${pos}`).textContent = caseObj.optionC;
+            });
+
+            document.getElementById('step1').classList.add('hidden');
+            document.getElementById('cases').classList.remove('hidden');
+            document.getElementById('case-container-1').classList.remove('hidden');
+            currentCaseIndex = 1;
+        }
+
+        async function submitCase(n) {
+            const choice = document.querySelector(`input[name="c${n}"]:checked`)?.value;
+            const reasoning = document.getElementById(`r${n}`).value.trim();
+            if (!choice || !reasoning) { alert('Selecciona opción y escribe razonamiento'); return; }
+
+            const caseObj = allCases.find(c => c.id === data.selectedCaseIds[n - 1]);
+
+            data.cases[n] = {
+                choice,
+                reasoning,
+                title: caseObj.title,
+                context: caseObj.context,
+                optionA: caseObj.optionA,
+                optionB: caseObj.optionB,
+                optionC: caseObj.optionC,
+                analysis: ''
+            };
+
+            const fbDiv = document.getElementById(`fb${n}`);
+            fbDiv.innerHTML = '⏳ Obteniendo análisis...';
+            fbDiv.classList.remove('hidden');
+
+            try {
+                const res = await fetch('http://localhost:5002/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'user', content: `${data.name}. ${data.id}.` },
+                            { role: 'assistant', content: `Caso ${n}: ${caseObj.title}` },
+                            { role: 'user', content: `Elijo opción ${choice}. ${reasoning}` }
+                        ],
+                        caseNumber: n
+                    })
+                });
+                const result = await res.json();
+                const text = result.content[0].text;
+                const analysis = text.split('===ANÁLISIS EDUCATIVO===')[1] || text;
+                data.cases[n].analysis = analysis;
+                fbDiv.innerHTML = `<strong>Análisis:</strong><br><br>${analysis}`;
+                document.getElementById(`next${n}`).classList.remove('hidden');
+            } catch (e) {
+                fbDiv.innerHTML = `⚠️ Error de conexión. Continúa de todas formas.`;
+                document.getElementById(`next${n}`).classList.remove('hidden');
+            }
+        }
+
+        function nextCase() {
+            document.getElementById(`case-container-${currentCaseIndex}`).classList.add('hidden');
+            currentCaseIndex++;
+            if (currentCaseIndex <= 3) {
+                document.getElementById(`case-container-${currentCaseIndex}`).classList.remove('hidden');
+            }
+        }
+
+        function goReflection() {
+            document.getElementById('cases').classList.add('hidden');
+            document.getElementById('reflection-step').classList.remove('hidden');
+        }
+
+        function generateReport() {
+            const reflection = document.getElementById('reflection').value.trim();
+            if (!reflection) { alert('Escribe tu reflexión'); return; }
+
+            document.getElementById('reflection-step').classList.add('hidden');
+            document.getElementById('report-step').classList.remove('hidden');
+
+            document.getElementById('rname').textContent = data.name;
+            document.getElementById('rid').textContent = data.id;
+
+            for (let i = 1; i <= 3; i++) {
+                const c = data.cases[i];
+                const optionMap = { 'A': c.optionA, 'B': c.optionB, 'C': c.optionC };
+                document.getElementById(`case${i}-report`).innerHTML = `
+                    <div class="section-title">Caso ${i}: ${c.title}</div>
+                    <div style="margin-bottom: 12px; font-size: 13px; color: #666;">${c.context}</div>
+                    <h3 style="color: #0f6e56; margin-bottom: 8px;">Tu opción: ${c.choice} - ${optionMap[c.choice]}</h3>
+                    <div style="background: #f5f5f5; padding: 12px; border-radius: 6px; font-size: 13px; line-height: 1.6; margin-bottom: 12px;">
+                        <strong>Tu razonamiento:</strong><br>${c.reasoning}
+                    </div>
+                    ${c.analysis ? `<div style="background: #e8f5e9; padding: 12px; border-left: 4px solid #4caf50; border-radius: 4px; font-size: 13px; line-height: 1.6; color: #2e7d32;">
+                        <strong>Análisis educativo:</strong><br>${c.analysis}
+                    </div>` : ''}
+                `;
+            }
+
+            document.getElementById('reflection-report').innerHTML = `
+                <div class="section-title">Reflexión Personal</div>
+                <div style="font-size: 14px; line-height: 1.8;">${reflection}</div>
+            `;
+        }
+    </script>
+</body>
+</html>
