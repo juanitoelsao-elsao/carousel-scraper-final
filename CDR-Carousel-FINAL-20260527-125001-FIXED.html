@@ -326,9 +326,9 @@ function genEditorialCopy(prop){
   var s1h=(propType&&locName)?(propType+' in '+locName):propType||locData.h[0];
   var s1s=prop.loc||'';
   var s3tag=typeData.a[0];
-  // Slide 5: same format
-  var s5h=(propType&&locName)?(propType+' in '+locName):propType||locData.h[1];
-  var s5s=prop.loc||'';
+  // Slide 5: editorial about location (why it's cool)
+  var s5h=locData.h[1];
+  var s5s=locData.h[2]||'';
   var s1cta=CTAS.s1[LANG]||CTAS.s1.en;
   var s3cta=CTAS.s3[LANG]||CTAS.s3.en;
   var s5cta=CTAS.s5[LANG]||CTAS.s5.en;
