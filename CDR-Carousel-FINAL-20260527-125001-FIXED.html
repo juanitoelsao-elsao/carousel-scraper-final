@@ -321,10 +321,7 @@ function genEditorialCopy(prop){
     feats=typeData.f.slice(0,3);
   }
   var airportInfo=(AIRPORTS[locKey]||AIRPORTS.default)[LANG]||'';
-  // Create s1h combining property type + location for specificity
-  var typeKey=Object.keys(TD).find(function(k){return TD[k]===typ;})|| 'default';
-  var typeLabel={en:{hotel:'Boutique Hotel',villa:'Villa',condo:'Residence',house:'Home',retreat:'Wellness Retreat',beachfront:'Oceanfront Property',lot:'Coastal Land',hostal:'Hospitality Business',default:'Property'},es:{hotel:'Hotel Boutique',villa:'Villa',condo:'Residencia',house:'Casa',retreat:'Retiro de Bienestar',beachfront:'Propiedad Oceanfront',lot:'Terreno Costero',hostal:'Negocio de Hospitalidad',default:'Propiedad'}}[LANG]||{};
-  var s1h=(typeLabel[typeKey]||typeLabel.default)+' in '+locName+' —\n'+locData.h[0].split('—')[1].trim();
+  var s1h=(prop.title||'').substring(0,100)||locData.h[0];
   var s1s=prop.loc||'';
   var s3tag=typeData.a[0];
   var s5h=locData.h[1];
