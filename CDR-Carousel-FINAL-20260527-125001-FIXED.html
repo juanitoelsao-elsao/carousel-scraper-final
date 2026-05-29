@@ -321,12 +321,18 @@ function genEditorialCopy(prop){
     feats=typeData.f.slice(0,3);
   }
   var airportInfo=(AIRPORTS[locKey]||AIRPORTS.default)[LANG]||'';
-  // Use property title as is for slide 1, clean for editorial sound
-  var s1h=(prop.title||'').substring(0,100)||locData.h[0];
+  // Rewrite property title in editorial tone
+  function toEditorial(rawTitle){
+    if(!rawTitle)return '';
+    var title=rawTitle.replace(/for sale|–.*$/i,'').trim();
+    // Remove junk phrases, keep property type + location
+    title=title.replace(/\s*(incomplete|unfinished|under construction|needs.*|requires.*)/i,'');
+    return title.charAt(0).toUpperCase()+title.slice(1);
+  }
+  var s1h=toEditorial(prop.title)||locData.h[0];
   var s1s=prop.loc||'';
   var s3tag=typeData.a[0];
-  // Slide 5 uses same property title approach (clean, specific, editorial)
-  var s5h=(prop.title||'').substring(0,100)||locData.h[1];
+  var s5h=toEditorial(prop.title)||locData.h[1];
   var s5s=prop.loc||'';
   var s1cta=CTAS.s1[LANG]||CTAS.s1.en;
   var s3cta=CTAS.s3[LANG]||CTAS.s3.en;
