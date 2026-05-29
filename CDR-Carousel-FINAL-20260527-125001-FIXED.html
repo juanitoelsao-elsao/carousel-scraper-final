@@ -182,7 +182,6 @@ button:hover{opacity:.82}
 var LANG='en';
 var TOKEN='ffq9drrwz004a5nmv54w98zcpnfiyz';
 var API='https://api.easybroker.com/v1/properties';
-var WORKER='https://api.allorigins.win/get?url=';
 var LOGO_URL='https://assets.easybroker.com/organization_files/160411/CostaDreamLogo2025.JPG';
 var W=1080,H=1350,MXN_R=17.2,CACHE_TTL=3600000;
 var TC={
@@ -285,11 +284,11 @@ var CTAS={
 
 function detectLoc(str){
   var s=(str||'').toLowerCase();
+  if(/huatulco|bahias/.test(s))return LD.huatulco;
   if(/mazunte/.test(s))return LD.mazunte;
   if(/zipolite/.test(s))return LD.zipolite;
-  if(/huatulco/.test(s))return LD.huatulco;
-  if(/escondido/.test(s))return LD.escondido;
-  if(/puerto.*ngel|panteon/i.test(s))return LD.angel;
+  if(/escondido|puerto.?escondido/.test(s))return LD.escondido;
+  if(/puerto.*ngel|port.*angel|panteon/.test(s))return LD.angel;
   return LD.default;
 }
 function detectType(title,ov){
@@ -310,23 +309,30 @@ function genEditorialCopy(prop){
   var locKey=Object.keys(LD).find(function(k){return LD[k]===loc;})|| 'default';
   var typ=detectType(prop.title||'',prop.typeOv);
   var locData=loc[LANG]||loc.en, typeData=typ[LANG]||typ.en;
-  var rawF=prop.manFeats||[];
-  var feats=rawF.length?rawF.map(elevate).filter(Boolean):[];
+  var locName=(prop.loc||'').split(',')[0].trim()||'Oaxaca Coast';
+  var hasScrapedData=prop.desc&&prop.desc.trim().length>0;
+  var feats=[];
+  if(hasScrapedData&&prop.amenities&&prop.amenities.length){
+    feats=prop.amenities.slice(0,3);
+  }else if(prop.manFeats&&prop.manFeats.length){
+    feats=prop.manFeats.map(elevate).filter(Boolean);
+  }
   if(!feats.length){
     feats=typeData.f.slice(0,3);
   }
   var airportInfo=(AIRPORTS[locKey]||AIRPORTS.default)[LANG]||'';
-  var s1h=locData.h[0];
+  var s1h=hasScrapedData?(prop.title||'').substring(0,60):locData.h[0];
   var s1s=prop.loc||'';
-  var s3tag=typeData.a[0];
-  var s5h=locData.a[0].replace(/-/g,' ');
-  var s5s=typeData.a[1];
+  var s3tag=hasScrapedData?(prop.desc||'').substring(0,80):typeData.a[0];
+  var s5h=hasScrapedData?locData.a[0].replace(/-/g,' '):locData.a[0].replace(/-/g,' ');
+  var s5s=hasScrapedData?'This is a place worth knowing.':typeData.a[1];
   var s1cta=CTAS.s1[LANG]||CTAS.s1.en;
   var s3cta=CTAS.s3[LANG]||CTAS.s3.en;
   var s5cta=CTAS.s5[LANG]||CTAS.s5.en;
   var s7cta=CTAS.s7[LANG]||CTAS.s7.en;
-  var locName=(prop.loc||'').split(',')[0].trim()||'Oaxaca Coast';
-  var cap=typeData.h+'\n\n📍 '+locName+'\n'+feats.map(function(f){return '· '+f;}).join('\n')+'\n\n'+locData.v+'\n\n'+airportInfo+'\n\n'+s7cta+'\n\n'+locData.t;
+  var capIntro=hasScrapedData?prop.title:typeData.h;
+  var capLocation=locData.v||'Exceptional location on the Oaxaca coast.';
+  var cap=capIntro+'\n\n📍 '+locName+'\n'+feats.map(function(f){return '· '+f;}).join('\n')+'\n\n'+capLocation+'\n\n'+airportInfo+'\n\n'+s7cta+'\n\n'+locData.t;
   return{s1h:s1h,s1s:s1s,s3tag:s3tag,s5h:s5h,s5s:s5s,feats:feats,
     cta1:s1cta,cta3:s3cta,cta5:s5cta,cta7:s7cta,airport:airportInfo,cap:cap};
 }
@@ -356,8 +362,7 @@ function loadLogo(){
     img.crossOrigin='anonymous';
     img.onload=function(){logoImg=img;res();};
     img.onerror=function(){
-      // Try allorigins proxy (better for images than localhost)
-      fetch(WORKER+encodeURIComponent(LOGO_URL),{signal:AbortSignal.timeout(8000)})
+      fetch('https://api.allorigins.win/get?url='+encodeURIComponent('https://assets.easybroker.com/organization_files/160411/CostaDreamLogo2025.JPG'),{signal:AbortSignal.timeout(8000)})
         .then(r=>r.json()).then(function(j){
           if(j.contents){
             var base64=btoa(j.contents);
@@ -368,7 +373,7 @@ function loadLogo(){
           }else{res();}
         }).catch(function(){res();});
     };
-    img.src=LOGO_URL;
+    img.src='https://assets.easybroker.com/organization_files/160411/CostaDreamLogo2025.JPG';
   });
 }
 
@@ -376,14 +381,14 @@ function loadLogo(){
 async function fetchAll(){
   var cached=lsg(LS.CACHE,null),ts=lsg(LS.CT,0);
   if(cached&&Array.isArray(cached)&&cached.length&&(Date.now()-ts)<CACHE_TTL){return cached;}
-  setSt('urlSt',s('st_fetch'));
+  setSt('urlSt','Fetching property data…');
   var all=[],page=1;
   while(true){
-    var url=API+'?page='+page+'&per_page=50&status=published';
+    var url='https://api.easybroker.com/v1/properties?page='+page+'&per_page=50&status=published';
     var r;
     try{r=await fetch(url,{method:'GET',headers:{'X-Authorization':TOKEN,'Accept':'application/json'}});if(!r.ok)r=null;}catch(e){r=null;}
     if(!r){try{r=await fetch('https://corsproxy.io/?'+encodeURIComponent(url),{headers:{'X-Authorization':TOKEN}});if(!r.ok)r=null;}catch(e){r=null;}}
-    if(!r){r=await fetch(WORKER+encodeURIComponent(url));}
+    if(!r){r=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url));}
     if(!r||!r.ok)throw new Error('EasyBroker fetch failed');
     var d=await r.json();
     var items=d.content||[];all=all.concat(items);
@@ -407,21 +412,22 @@ async function fetchAll(){
 
 // ── PROXY FETCH (for non-CDR URLs) ────────────────────────────────────────
 async function proxyFetch(url){
-  var proxies=['http://localhost:5001/?url=','https://api.allorigins.win/get?url=','https://cors-anywhere.herokuapp.com/'];
+  var proxies=[
+    {url:'http://localhost:5001/?url=',fmt:'append'},
+    {url:'https://api.allorigins.win/get?url=',fmt:'append'},
+    {url:'https://thingproxy.freehostip.com/fetch/',fmt:'append'}
+  ];
   for(var i=0;i<proxies.length;i++){
     try{
-      var purl=proxies[i];
-      if(purl.includes('localhost'))purl+=encodeURIComponent(url);
-      else if(purl.includes('allorigins'))purl+=encodeURIComponent(url);
-      else purl+=url;
-      var r=await fetch(purl,{signal:AbortSignal.timeout(10000),headers:{'User-Agent':'Mozilla/5.0'}});
+      var purl=proxies[i].url+encodeURIComponent(url);
+      var r=await fetch(purl,{signal:AbortSignal.timeout(12000),headers:{'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}});
       if(!r.ok)continue;
       var text=await r.text();
-      try{var json=JSON.parse(text);text=json.contents||json;}catch(e){}
-      if(text&&text.length>100)return text;
+      try{var json=JSON.parse(text);if(json.contents){text=json.contents;}else if(json.body){text=json.body;}}catch(e){}
+      if(text&&text.length>500)return text;
     }catch(e){console.log('Proxy '+i+' failed:',e.message);}
   }
-  throw new Error('Proxy failed: Start scraper-proxy.py OR check internet');
+  throw new Error('All proxies failed. Ensure you\'re on a working internet connection.');
 }
 
 // ── SCRAPE (non-CDR URLs only) ────────────────────────────────────────────
@@ -434,8 +440,19 @@ async function scrapeURL(pageURL){
   var pm=html.match(/\$([\d,]+(?:\.\d+)?)\s*(USD|MXN)/i);
   if(pm){var pn=parseFloat(pm[1].replace(/,/g,''));usd=/MXN/i.test(pm[2])?pn/MXN_R:pn;}
   var loc='';
-  var lm=html.match(/(?:\bin\b|\ben\b)\s+([A-ZÁÉÍÓÚÑ][A-Za-záéíóúñ\s]{3,40}?)(?:,\s*[A-Z]|<|\.)/);
-  if(lm)loc=lm[1].trim();
+  // Extract location from title first (more reliable)
+  var locInTitle=/(?:,|—|–|in|en)\s+([A-ZÁÉÍÓÚÑ][A-Za-záéíóúñ\s]{3,40}?)(?:\s*—|$|[,|])/i.exec(title);
+  if(locInTitle)loc=locInTitle[1].trim();
+  // Fall back to HTML search only if not found in title
+  if(!loc){
+    var lm=html.match(/(?:\bin\b|\ben\b)\s+([A-ZÁÉÍÓÚÑ][A-Za-záéíóúñ\s]{3,40}?)(?:,\s*[A-Z]|<|\.)/);
+    if(lm)loc=lm[1].trim();
+  }
+  var desc='';
+  var dm=html.match(/<meta\s+name="description"\s+content="([^"]{20,500})"/i)||html.match(/<meta\s+property="og:description"\s+content="([^"]{20,500})"/i);
+  if(dm)desc=dm[1].trim();
+  if(!desc){var pm=html.match(/<p[^>]*>([^<]{30,300})<\/p>/i);if(pm)desc=pm[1].trim();}
+  var amenities=[];
   var sqmRaw='',sqftRaw='';
   var ds=html.match(/(\d[\d,]+)\s*m[²2]\s*\(([\d,]+)\s*sq[\s.]?ft\)/i);
   if(ds){sqmRaw=String(Math.round(parseFloat(ds[1].replace(/,/g,''))));sqftRaw=String(Math.round(parseFloat(ds[2].replace(/,/g,''))));}
@@ -448,11 +465,8 @@ async function scrapeURL(pageURL){
     beds=bm?bm[1]:'';baths=btm?btm[1]:'';
   }
   var seen={},imgs=[];
-  // Try og:image first
   var og=html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i)||html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/i);
   if(og&&og[1])seen[og[1].split('?')[0]]=og[1];
-
-  // Find images from img src attributes
   var imgRe=/<img[^>]+src="([^"]+\.(?:jpg|jpeg|png|webp|gif))"/gi;
   var im;
   while((im=imgRe.exec(html))!==null){
@@ -463,8 +477,6 @@ async function scrapeURL(pageURL){
     if(/logo|icon|thumb|avatar|pixel|badge|sprite|placeholder|[_-](?:16|24|32|48|64|96)x|widget|tracker|favicon/i.test(base))continue;
     seen[base]=raw;
   }
-
-  // Find images from srcset
   var srcsetRe=/<img[^>]+srcset="([^"]+)"/gi;
   while((im=srcsetRe.exec(html))!==null){
     var urls=im[1].split(',').map(u=>u.trim().split(/\s+/)[0]);
@@ -477,8 +489,6 @@ async function scrapeURL(pageURL){
       seen[base]=url;
     });
   }
-
-  // Find all image URLs in HTML (last resort)
   var re=/(https?:\/\/[^"'\s<>]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^"'\s<>]*)?)/gi;
   while((im=re.exec(html))!==null){
     var raw=im[0],base=raw.split('?')[0];
@@ -488,7 +498,8 @@ async function scrapeURL(pageURL){
   }
   imgs=Object.values(seen).slice(0,10);
   return{title:title.substring(0,80),loc:loc,usd:usd,tier:getTier(usd),
-    beds:beds,baths:baths,sqm:sqmRaw,sqft:sqftRaw,imgs:imgs,manFeats:[],typeOv:null,isLand:isLand};
+    beds:beds,baths:baths,sqm:sqmRaw,sqft:sqftRaw,imgs:imgs,manFeats:[],typeOv:null,isLand:isLand,
+    desc:desc,amenities:amenities};
 }
 
 // ── LOAD IMAGES ───────────────────────────────────────────────────────────
@@ -496,14 +507,12 @@ function loadOneImg(src){
   return new Promise(function(res){
     if(!src){res(null);return;}
     var clean=src.split('?')[0];
-    // Try direct load first (CORS permissive sites)
     var img=new Image();
     img.crossOrigin='anonymous';
     img.onload=function(){res(img);};
     img.onerror=function(){
-      // Fallback to proxy
       fetch('http://localhost:5001/?url='+encodeURIComponent(clean),{signal:AbortSignal.timeout(8000)})
-        .then(function(r){return r.blob();}).catch(function(){return fetch(WORKER+encodeURIComponent(clean)).then(r=>r.blob());})
+        .then(function(r){return r.blob();}).catch(function(){return fetch('https://api.allorigins.win/get?url='+encodeURIComponent(clean)).then(r=>r.blob());})
         .then(function(b){
           var u=URL.createObjectURL(b);var img2=new Image();
           img2.onload=function(){res(img2);};img2.onerror=function(){res(null);};img2.src=u;
@@ -550,13 +559,11 @@ function dHero(ctx,t,img,h1,sub){
   if(img){ctx.save();ctx.beginPath();ctx.rect(0,0,W,ph);ctx.clip();cover(ctx,img,0,0,W,ph);ctx.restore();}
   grd(ctx,0,ph-400,W,500,'rgba('+t.rgb+',1)');
   ctx.fillStyle=t.bg;ctx.fillRect(0,ph,W,H-ph);
-
   ctx.font='bold 68px "Playfair Display",serif';
   var ls=wrap(ctx,h1||'',W-160);
   var solidH=H-ph;
   var topMargin=140;
   var y=ph+topMargin;
-
   ctx.fillStyle=t.text;ctx.font='bold 68px "Playfair Display",serif';
   ls.forEach(function(l,i){ctx.fillText(l,72,y+i*80);});
   if(sub){
@@ -578,12 +585,10 @@ function dFeats(ctx,t,img,headline,feats,loc){
   if(img){ctx.save();ctx.beginPath();ctx.rect(0,0,W,ph);ctx.clip();cover(ctx,img,0,0,W,ph);ctx.restore();}
   grd(ctx,0,ph-400,W,500,'rgba('+t.rgb+',1)');
   ctx.fillStyle=t.bg;ctx.fillRect(0,ph,W,H-ph);
-
   ctx.font='bold 62px "Playfair Display",serif';
   var tls=wrap(ctx,headline||'',W-150);
   var topMargin=140;
   var y=ph+topMargin;
-
   ctx.fillStyle=t.text;ctx.font='bold 62px "Playfair Display",serif';
   tls.forEach(function(l,i){ctx.fillText(l,72,y+i*74);});
   y+=tls.length*74+36;
@@ -609,10 +614,8 @@ function dCTA(ctx,t,ctaText){
   ctx.strokeStyle=t.border;ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(72,260);ctx.lineTo(W-72,260);ctx.stroke();
   ctx.textAlign='center';
-
   var cta=ctaText||(CTAS.s7[LANG]||CTAS.s7.en);
   var ctaLines=cta.split('\n').map(function(l){return l.trim();});
-
   ctx.fillStyle=t.text;
   if(ctaLines.length===1){
     ctx.font='bold 72px "Playfair Display",serif';
@@ -629,7 +632,6 @@ function dCTA(ctx,t,ctaText){
       ctx.fillText(ctaLines[i],W/2,420+i*90);
     }
   }
-
   ctx.font='italic 30px "Playfair Display",serif';ctx.fillStyle=t.sub;
   ctx.fillText(LANG==='es'?'Sin compromiso. Solo posibilidades.':'No commitment. Just possibilities.',W/2,710);
   ctx.font='22px "Playfair Display",serif';ctx.fillStyle=t.sub;
@@ -696,7 +698,6 @@ async function runURL(){
   setSt('urlSt',s('st_fetch'));
   try{
     await loadLogo();
-    // CDR property → use EasyBroker API directly
     if(/costadreamrealty\.com\/property\//i.test(pageURL)){
       var slug=pageURL.split('/property/')[1].split('?')[0].replace(/\/$/,'');
       var all=await fetchAll();
@@ -710,7 +711,6 @@ async function runURL(){
           imgs:hit.imgs,manFeats:[],typeOv:null,isLand:isLand};
       }
     }
-    // fallback to scrape
     if(!urlProp)urlProp=await scrapeURL(pageURL);
     var tc={navy:'#1c2e45',camel:'#a07830',beige:'#c8b890'},tc2={navy:'#fff',camel:'#fff',beige:'#1c2e45'};
     document.getElementById('urlInfo').innerHTML=
