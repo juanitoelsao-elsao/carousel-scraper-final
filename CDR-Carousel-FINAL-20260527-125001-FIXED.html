@@ -440,9 +440,11 @@ async function scrapeURL(pageURL){
   var pm=html.match(/\$([\d,]+(?:\.\d+)?)\s*(USD|MXN)/i);
   if(pm){var pn=parseFloat(pm[1].replace(/,/g,''));usd=/MXN/i.test(pm[2])?pn/MXN_R:pn;}
   var loc='';
-  // Extract location from title first (more reliable)
-  var locInTitle=/(?:,|—|–|in|en)\s+([A-ZÁÉÍÓÚÑ][A-Za-záéíóúñ\s]{3,40}?)(?:\s*—|$|[,|])/i.exec(title);
-  if(locInTitle)loc=locInTitle[1].trim();
+  // Check title first for known locations (more reliable than HTML regex)
+  var knownLocs=['Huatulco','Bahías de Huatulco','Mazunte','Zipolite','Puerto Escondido','Puerto Ángel','Escondido'];
+  for(var i=0;i<knownLocs.length;i++){
+    if(new RegExp(knownLocs[i],'i').test(title)){loc=knownLocs[i];break;}
+  }
   // Fall back to HTML search only if not found in title
   if(!loc){
     var lm=html.match(/(?:\bin\b|\ben\b)\s+([A-ZÁÉÍÓÚÑ][A-Za-záéíóúñ\s]{3,40}?)(?:,\s*[A-Z]|<|\.)/);
