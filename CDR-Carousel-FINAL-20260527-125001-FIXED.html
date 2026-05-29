@@ -321,11 +321,11 @@ function genEditorialCopy(prop){
     feats=typeData.f.slice(0,3);
   }
   var airportInfo=(AIRPORTS[locKey]||AIRPORTS.default)[LANG]||'';
-  var s1h=hasScrapedData?(prop.title||'').substring(0,60):locData.h[0];
+  var s1h=locData.h[0];
   var s1s=prop.loc||'';
-  var s3tag=hasScrapedData?(prop.desc||'').substring(0,80):typeData.a[0];
-  var s5h=hasScrapedData?locData.a[0].replace(/-/g,' '):locData.a[0].replace(/-/g,' ');
-  var s5s=hasScrapedData?'This is a place worth knowing.':typeData.a[1];
+  var s3tag=typeData.a[0];
+  var s5h=locData.a[0].replace(/-/g,' ');
+  var s5s=typeData.a[1];
   var s1cta=CTAS.s1[LANG]||CTAS.s1.en;
   var s3cta=CTAS.s3[LANG]||CTAS.s3.en;
   var s5cta=CTAS.s5[LANG]||CTAS.s5.en;
