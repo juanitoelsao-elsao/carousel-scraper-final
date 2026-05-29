@@ -321,12 +321,13 @@ function genEditorialCopy(prop){
     feats=typeData.f.slice(0,3);
   }
   var airportInfo=(AIRPORTS[locKey]||AIRPORTS.default)[LANG]||'';
-  // Property title for s1h/s5h (type + location, no specs)
-  var editTitle=prop.title?prop.title.split(/\s*[–-—]\s*/)[0].trim():'';
-  var s1h=editTitle||locData.h[0];
+  // Slide 1: "Boutique Hotel in Mazunte" — what + where
+  var propType=prop.title?prop.title.split(/\s*[–-—]\s*/)[0].trim():'';
+  var s1h=(propType&&locName)?(propType+' in '+locName):propType||locData.h[0];
   var s1s=prop.loc||'';
   var s3tag=typeData.a[0];
-  var s5h=editTitle||locData.h[1];
+  // Slide 5: same format
+  var s5h=(propType&&locName)?(propType+' in '+locName):propType||locData.h[1];
   var s5s=prop.loc||'';
   var s1cta=CTAS.s1[LANG]||CTAS.s1.en;
   var s3cta=CTAS.s3[LANG]||CTAS.s3.en;
